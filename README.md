@@ -87,10 +87,113 @@ configure_dictionary_mode(:disabled)
 configure_dictionary_mode(:priority)
 ```
 
-**Limitations:**
-- Free API keys are rate-limited and suitable for research/testing only.
-- Requests are sent to external servers; do not use for private or sensitive data.
-- Model availability and speed may vary.
+## Setting up a Local LLM Environment
+
+### Using Ollama (Recommended)
+
+1. Install Ollama:
+   - Linux: `curl https://ollama.ai/install.sh | sh`
+   - macOS: `brew install ollama`
+   - Windows: Download from [Ollama website](https://ollama.ai/download)
+
+2. Pull a model:
+   ```bash
+   # Pull Mistral (recommended for mathematical tasks)
+   ollama pull mistral
+   
+   # Other options:
+   # ollama pull llama2
+   # ollama pull code-llama
+   ```
+
+3. Start the Ollama server:
+   ```bash
+   ollama serve
+   ```
+   The server will run on `http://localhost:11434` by default.
+
+4. Configure OscarAICoder to use Ollama:
+   ```julia
+   using OscarAICoder
+   configure_default_backend(:local)
+   ```
+
+### Using llama.cpp
+
+1. Build and run the llama.cpp server:
+   ```bash
+   # Clone the repository
+   git clone https://github.com/ggerganov/llama.cpp
+   cd llama.cpp
+   
+   # Build the server
+   make server
+   
+   # Run the server
+   ./server -m path/to/your/model.bin
+   ```
+
+2. Configure OscarAICoder:
+   ```julia
+   using OscarAICoder
+   configure_default_backend(:local, url="http://localhost:8080")  # Default llama.cpp port
+   ```
+
+### Using GitHub Repository
+
+1. Create a new GitHub repository to host your LLM models
+2. Add your model files to the repository
+3. Structure your repository like this:
+```
+your-repo/
+├── models/
+│   ├── llama2/          # Model directory
+│   │   ├── model.bin    # Model file
+│   │   └── config.json  # Model configuration
+│   └── mistral/         # Another model
+│       └── model.bin
+└── README.md
+```
+
+4. Configure your GitHub token:
+   - Go to GitHub → Settings → Developer Settings → Personal Access Tokens
+   - Generate a new token with `repo` access
+   - Keep this token secure and never commit it to version control
+
+5. Configure OscarAICoder to use your GitHub-hosted model:
+```julia
+using OscarAICoder
+
+# Configure GitHub backend
+configure_github_backend(
+    repo="yourusername/your-repo",  # Your GitHub repository
+    token="your_github_token",      # Your GitHub token
+    model="llama2",                 # Model name (must match directory name)
+    branch="main"                   # Optional, defaults to "main"
+)
+
+# Now you can use the process_statement function
+oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers.")
+```
+
+### Using Hugging Face
+
+1. Get a free Hugging Face API key:
+   - Go to [Hugging Face](https://huggingface.co/)
+   - Sign up or log in
+   - Go to Settings → Access Tokens
+   - Click "New token" and generate a token with "Inference" access
+
+2. Configure OscarAICoder:
+```julia
+using OscarAICoder
+
+# Configure Hugging Face backend
+configure_default_backend(:huggingface, 
+    api_key="your_hf_api_key",
+    model="gpt2"
+)
+```
 
 ## Setting up a GitHub Repository for Your Models
 

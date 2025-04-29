@@ -12,6 +12,10 @@
 \usepackage{makeidx}
 
 \geometry{left=2cm,right=2cm,top=2cm,bottom=2cm}
+
+% Set headheight for fancyhdr
+\setlength{\headheight}{14pt}
+
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\leftmark}
@@ -19,6 +23,15 @@
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0.4pt}
+
+% Define Julia language for listings
+\lstdefinelanguage{Julia}{
+    morekeywords={abstract,break,case,catch,continue,do,else,elseif,end,export,for,function,immutable,import,if,in,macro,module,otherwise,quote,return,switch,type,typealias,using,while},
+    morecomment=[l]{\#},
+    morecomment=[n]{\#=}{=\#},
+    morestring=[s]{"}{"},
+    morestring=[m]{'}{'}
+}
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
@@ -31,7 +44,7 @@
     keywordstyle=\color{magenta},
     numberstyle=\tiny\color{codegray},
     stringstyle=\color{codepurple},
-    basicstyle=\footnotesize,
+    basicstyle=\footnotesize\ttfamily,
     breakatwhitespace=false,         
     breaklines=true,                 
     captionpos=b,                    
@@ -41,7 +54,8 @@
     showspaces=false,                
     showstringspaces=false,
     showtabs=false,                  
-    tabsize=2
+    tabsize=2,
+    language=Julia
 }
 
 \lstset{style=mystyle}
@@ -68,7 +82,7 @@ OscarAICoder.jl is a Julia package designed to bridge the gap between natural la
 
 To install OscarAICoder.jl, use the Julia package manager:
 
-\begin{lstlisting}[language=Julia]
+\begin{lstlisting}
 using Pkg
 Pkg.add("OscarAICoder")
 \end{lstlisting}
@@ -81,7 +95,7 @@ The primary function in OscarAICoder.jl is \texttt{process\_statement}, which ta
 
 The package includes a built-in dictionary of common mathematical statements. You can configure how it's used:
 
-\begin{lstlisting}[language=Julia]
+\begin{lstlisting}
 using OscarAICoder
 
 # Try dictionary first, then LLM
@@ -102,7 +116,7 @@ OscarAICoder supports multiple LLM backends. The default backend can be configur
 
 The local backend connects to a locally running LLM server (e.g., Ollama):
 
-\begin{lstlisting}[language=Julia]
+\begin{lstlisting}
 using OscarAICoder
 
 # Configure local backend
@@ -116,7 +130,7 @@ oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
 
 The remote backend connects to a remote LLM server:
 
-\begin{lstlisting}[language=Julia]
+\begin{lstlisting}
 using OscarAICoder
 
 # Configure remote backend
@@ -130,7 +144,7 @@ oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
 
 The GitHub backend uses models hosted in GitHub repositories:
 
-\begin{lstlisting}[language=Julia]
+\begin{lstlisting}
 using OscarAICoder
 
 # Configure GitHub backend
@@ -150,7 +164,7 @@ oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
 
 \subsubsection{Polynomial Factorization}
 
-\begin{lstlisting}[language=Julia]
+\begin{lstlisting}
 using OscarAICoder
 
 # Configure dictionary mode
@@ -164,7 +178,7 @@ oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the inte
 
 \subsubsection{Ideal Operations}
 
-\begin{lstlisting}[language=Julia]
+\begin{lstlisting}
 using OscarAICoder
 
 # Configure GitHub backend
@@ -182,7 +196,7 @@ oscar_code = process_statement("Compute the intersection of ideals (x,y) and (y,
 
 \subsubsection{Variety Computation}
 
-\begin{lstlisting}[language=Julia]
+\begin{lstlisting}
 using OscarAICoder
 
 # Configure dictionary mode
@@ -196,7 +210,7 @@ oscar_code = process_statement("Compute the variety defined by x^2 + y^2 - 1 in 
 
 \subsubsection{Integration}
 
-\begin{lstlisting}[language=Julia]
+\begin{lstlisting}
 using OscarAICoder
 
 # Configure local backend
@@ -210,7 +224,7 @@ oscar_code = process_statement("Integrate x^2 from 0 to 1")
 
 \subsubsection{Matrix Operations}
 
-\begin{lstlisting}[language=Julia]
+\begin{lstlisting}
 using OscarAICoder
 
 # Configure dictionary mode
@@ -226,7 +240,7 @@ oscar_code = process_statement("Compute the determinant of matrix [[1,2],[3,4]]"
 
 You can enable offline mode to use only the local dictionary:
 
-\begin{lstlisting}[language=Julia]
+\begin{lstlisting}
 using OscarAICoder
 
 # Enable offline mode
@@ -234,54 +248,6 @@ configure_offline_mode(true)
 
 # Only dictionary entries will be used
 oscar_code = process_statement("Compute the determinant of a 2x2 matrix")
-\end{lstlisting}
-
-\subsection{Backend Configuration}
-
-\subsubsection{Local Backend}
-
-The local backend connects to a locally running LLM server (e.g., Ollama):
-
-\begin{lstlisting}[language=Julia]
-using OscarAICoder
-
-# Configure local backend
-configure_default_backend(:local)
-
-# Process a statement
-oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
-\end{lstlisting}
-
-\subsubsection{Remote Backend}
-
-The remote backend connects to a remote LLM server:
-
-\begin{lstlisting}[language=Julia]
-using OscarAICoder
-
-# Configure remote backend
-configure_default_backend(:remote, url="http://server01.mydomain.net:11434")
-
-# Process a statement
-oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
-\end{lstlisting}
-
-\subsubsection{GitHub Backend}
-
-The GitHub backend uses models hosted in GitHub repositories:
-
-\begin{lstlisting}[language=Julia]
-using OscarAICoder
-
-# Configure GitHub backend
-configure_github_backend(
-    repo="username/repo",
-    token="github_token",
-    model="llama2"
-)
-
-# Process a statement
-oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
 \end{lstlisting}
 
 \section{Testing}
@@ -310,3 +276,6 @@ Contributions to OscarAICoder.jl are welcome! Please see the \texttt{CONTRIBUTIN
 OscarAICoder.jl is licensed under the MIT License.
 
 \end{document}
+
+
+
