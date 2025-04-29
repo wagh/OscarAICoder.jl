@@ -160,9 +160,9 @@ configure_dictionary_mode(:priority)
 oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers")
 \end{lstlisting}
 
-\subsection{Calculus}
+\subsection{Commutative Algebra}
 
-\subsubsection{Integration}
+\subsubsection{Ideal Operations}
 
 \begin{lstlisting}[language=Julia]
 using OscarAICoder
@@ -175,7 +175,49 @@ configure_github_backend(
 )
 
 # Process statement
+oscar_code = process_statement("Compute the intersection of ideals (x,y) and (y,z) in Q[x,y,z]")
+\end{lstlisting}
+
+\subsection{Algebraic Geometry}
+
+\subsubsection{Variety Computation}
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Configure dictionary mode
+configure_dictionary_mode(:priority)
+
+# Process statement
+oscar_code = process_statement("Compute the variety defined by x^2 + y^2 - 1 in Q[x,y]")
+\end{lstlisting}
+
+\subsection{Calculus}
+
+\subsubsection{Integration}
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Configure local backend
+configure_default_backend(:local)
+
+# Process statement
 oscar_code = process_statement("Integrate x^2 from 0 to 1")
+\end{lstlisting}
+
+\subsection{Linear Algebra}
+
+\subsubsection{Matrix Operations}
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Configure dictionary mode
+configure_dictionary_mode(:priority)
+
+# Process statement
+oscar_code = process_statement("Compute the determinant of matrix [[1,2],[3,4]]")
 \end{lstlisting}
 
 \section{Advanced Features}
@@ -192,6 +234,71 @@ configure_offline_mode(true)
 
 # Only dictionary entries will be used
 oscar_code = process_statement("Compute the determinant of a 2x2 matrix")
+\end{lstlisting}
+
+\subsection{Backend Configuration}
+
+\subsubsection{Local Backend}
+
+The local backend connects to a locally running LLM server (e.g., Ollama):
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Configure local backend
+configure_default_backend(:local)
+
+# Process a statement
+oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
+\end{lstlisting}
+
+\subsubsection{Remote Backend}
+
+The remote backend connects to a remote LLM server:
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Configure remote backend
+configure_default_backend(:remote, url="http://server01.mydomain.net:11434")
+
+# Process a statement
+oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
+\end{lstlisting}
+
+\subsubsection{GitHub Backend}
+
+The GitHub backend uses models hosted in GitHub repositories:
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Configure GitHub backend
+configure_github_backend(
+    repo="username/repo",
+    token="github_token",
+    model="llama2"
+)
+
+# Process a statement
+oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
+\end{lstlisting}
+
+\section{Testing}
+
+The package includes a comprehensive test suite organized by mathematical area:
+
+\begin{itemize}
+    \item \texttt{doc/tst/commutative\_algebra/}
+    \item \texttt{doc/tst/algebraic\_geometry/}
+    \item \texttt{doc/tst/calculus/}
+    \item \texttt{doc/tst/linear\_algebra/}
+\end{itemize}
+
+To run the tests, use the \texttt{make test} command:
+
+\begin{lstlisting}[language=bash]
+make test
 \end{lstlisting}
 
 \section{Contributing}

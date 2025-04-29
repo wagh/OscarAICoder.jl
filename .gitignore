@@ -30,3 +30,19 @@ Project.toml.lock
 
 # Logs
 *.log
+
+# Documentation output
+manual.pdf
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# Test output
+doc/tst/*.out
+doc/tst/*.log
