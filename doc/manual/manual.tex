@@ -1,0 +1,205 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{url}
+\usepackage{fancyhdr}
+\usepackage{geometry}
+\usepackage{makeidx}
+
+\geometry{left=2cm,right=2cm,top=2cm,bottom=2cm}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                   
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+\title{\textbf{OscarAICoder.jl}}
+\author{Vinay Wagh}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+OscarAICoder.jl is a Julia package that translates English mathematical statements into Oscar code using various LLM backends. It supports multiple backend configurations including local, remote, GitHub-hosted, and HuggingFace models.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+
+OscarAICoder.jl is a Julia package designed to bridge the gap between natural language mathematical statements and executable Oscar code. It leverages modern LLM (Large Language Model) technology to understand and translate mathematical concepts expressed in English into equivalent Oscar code.
+
+\section{Installation}
+
+To install OscarAICoder.jl, use the Julia package manager:
+
+\begin{lstlisting}[language=Julia]
+using Pkg
+Pkg.add("OscarAICoder")
+\end{lstlisting}
+
+\section{Basic Usage}
+
+The primary function in OscarAICoder.jl is \texttt{process\_statement}, which takes an English mathematical statement and returns the corresponding Oscar code.
+
+\subsection{Dictionary Mode}
+
+The package includes a built-in dictionary of common mathematical statements. You can configure how it's used:
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Try dictionary first, then LLM
+configure_dictionary_mode(:priority)
+
+# Use only the dictionary
+configure_dictionary_mode(:only)
+
+# Never use dictionary
+configure_dictionary_mode(:disabled)
+\end{lstlisting}
+
+\section{Backend Configuration}
+
+OscarAICoder supports multiple LLM backends. The default backend can be configured using \texttt{configure\_default\_backend}.
+
+\subsection{Local Backend}
+
+The local backend connects to a locally running LLM server (e.g., Ollama):
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Configure local backend
+configure_default_backend(:local)
+
+# Process a statement
+oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
+\end{lstlisting}
+
+\subsection{Remote Backend}
+
+The remote backend connects to a remote LLM server:
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Configure remote backend
+configure_default_backend(:remote, url="http://server01.mydomain.net:11434")
+
+# Process a statement
+oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
+\end{lstlisting}
+
+\subsection{GitHub Backend}
+
+The GitHub backend uses models hosted in GitHub repositories:
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Configure GitHub backend
+configure_github_backend(
+    repo="username/repo",
+    token="github_token",
+    model="llama2"
+)
+
+# Process a statement
+oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
+\end{lstlisting}
+
+\section{Examples}
+
+\subsection{Basic Algebra}
+
+\subsubsection{Polynomial Factorization}
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Configure dictionary mode
+configure_dictionary_mode(:priority)
+
+# Process statement
+oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers")
+\end{lstlisting}
+
+\subsection{Calculus}
+
+\subsubsection{Integration}
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Configure GitHub backend
+configure_github_backend(
+    repo="username/repo",
+    token="github_token",
+    model="llama2"
+)
+
+# Process statement
+oscar_code = process_statement("Integrate x^2 from 0 to 1")
+\end{lstlisting}
+
+\section{Advanced Features}
+
+\subsection{Offline Mode}
+
+You can enable offline mode to use only the local dictionary:
+
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+
+# Enable offline mode
+configure_offline_mode(true)
+
+# Only dictionary entries will be used
+oscar_code = process_statement("Compute the determinant of a 2x2 matrix")
+\end{lstlisting}
+
+\section{Contributing}
+
+Contributions to OscarAICoder.jl are welcome! Please see the \texttt{CONTRIBUTING.md} file for guidelines.
+
+\section{License}
+
+OscarAICoder.jl is licensed under the MIT License.
+
+\end{document}
