@@ -11,7 +11,7 @@ TEST_DIRS = $(DOC_DIR)/tst/commutative_algebra \
 # Test files
 TEST_FILES = $(shell find $(TEST_DIRS) -name "*.jl")
 
-.PHONY: all doc test clean
+.PHONY: all doc test execute clean
 
 all: doc test
 
@@ -27,6 +27,15 @@ $(PDF): $(MANUAL)
 	@echo "Documentation built successfully: $(PDF)"
 
 test: $(TEST_FILES)
+execute: $(TEST_FILES)
+	@echo "Running execute tests..."
+	@for test_file in $(TEST_DIRS)/*/*_tests.jl; do \
+		echo "Running execute test: $$test_file"; \
+		julia $$test_file > $$test_file.out 2>&1; \
+		diff $$test_file.out $$test_file.expected 2>/dev/null || \
+		(echo "Execute test failed: $$test_file" && cat $$test_file.out && exit 1); \
+	done
+	@echo "All execute tests passed successfully"
 	@echo "Running tests..."
 	@for test_file in $(TEST_FILES); do \
 		echo "Running test: $$test_file"; \

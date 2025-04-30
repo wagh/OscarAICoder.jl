@@ -1,9 +1,10 @@
 module OscarAICoder
 
-export process_statement, configure_default_backend, configure_dictionary_mode, configure_github_backend
+export process_statement, configure_default_backend, configure_dictionary_mode, configure_github_backend, execute_statement
 
 include("backends.jl")
 include("seed_dictionary.jl")
+include("execute.jl")
 
 # Global configuration
 const CONFIG = Dict{Symbol, Any}(
