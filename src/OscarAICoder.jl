@@ -10,8 +10,14 @@ include("execute.jl")
 const CONFIG = Dict{Symbol, Any}(
     :default_backend => :local,
     :backend_settings => Dict{Symbol, Dict{Symbol, Any}}(
-        :local => Dict(:url => "http://localhost:11434"),  # Local Ollama instance
-        :remote => Dict(:url => "http://myserver.mydomain.net:11434"),  # Remote server
+        :local => Dict(
+            :url => "http://localhost:11434",
+            :model => "llama3.3"
+        ),  # Local Ollama instance
+        :remote => Dict(
+            :url => "http://myserver.mydomain.net:11434",
+            :model => "llama3.3"
+        ),  # Remote server
         :huggingface => Dict(
             :api_key => nothing,
             :model => "gpt2",
