@@ -3,9 +3,9 @@
 
 Execute Oscar code and return the result.
 """
+using Oscar
+
 function execute_statement(oscar_code::String)
-    # Initialize Oscar
-    using Oscar
     
     # Execute the code and capture the result
     try
