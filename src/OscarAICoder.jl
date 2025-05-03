@@ -1,8 +1,11 @@
 module OscarAICoder
 
-export process_statement, configure_default_backend, configure_dictionary_mode, configure_github_backend, execute_statement
+export process_statement, configure_default_backend, configure_dictionary_mode, configure_github_backend, execute_statement, execute_statement_with_format, debug_mode!, debug_mode
 
-include("backends.jl")
+include("utils.jl")
+include("backends/local.jl")
+include("backends/huggingface.jl")
+include("backends/github.jl")
 include("seed_dictionary.jl")
 include("execute.jl")
 
@@ -11,16 +14,19 @@ const CONFIG = Dict{Symbol, Any}(
     :default_backend => :local,
     :backend_settings => Dict{Symbol, Dict{Symbol, Any}}(
         :local => Dict(
-            :url => "http://localhost:11434",
-            :model => "llama3.3"
+            :url => "http://localhost:11434/api/generate",
+            :model => "oscar-coder",  # Available models: qwen2.5, qwen2.5-coder, oscar-coder
+            :model_choices => [:qwen2_5, :qwen2_5_coder, :oscar_coder]
         ),  # Local Ollama instance
         :remote => Dict(
             :url => "http://myserver.mydomain.net:11434",
-            :model => "llama3.3"
+            :model => "qwen2.5-coder",  # Available models: qwen2.5, qwen2.5-coder
+            :model_choices => [:qwen2_5, :qwen2_5_coder]
         ),  # Remote server
         :huggingface => Dict(
             :api_key => nothing,
-            :model => "gpt2",
+            :model => "gpt2",  # Available models: qwen2.5, qwen2.5-coder
+            :model_choices => [:qwen2_5, :qwen2_5_coder]
             :endpoint => "https://api-inference.huggingface.co/models"
         ),
         :github => Dict(
@@ -33,8 +39,23 @@ const CONFIG = Dict{Symbol, Any}(
         )
     ),
     :dictionary_mode => :priority,  # :priority, :only, :disabled
-    :offline_mode => false         # When true, only use dictionary
+    :offline_mode => false,         # When true, only use dictionary
+    :debug_mode => false            # When true, enable debug output
 )
+
+"""
+    debug_mode!(enabled::Bool)
+
+Enable or disable debug mode. When debug mode is enabled, detailed debug information
+will be printed to the console during operations.
+"""
+
+"""
+    debug_mode()
+
+Check if debug mode is currently enabled.
+Returns: Bool indicating whether debug mode is enabled.
+"""
 
 """
     configure_offline_mode(enabled::Bool)
@@ -42,6 +63,25 @@ const CONFIG = Dict{Symbol, Any}(
 Enable or disable offline mode. In offline mode, only the local dictionary is used.
 Any attempt to use LLM backends will result in an error.
 """
+
+function debug_mode!(enabled::Bool)
+    """
+    Enable or disable debug mode. When debug mode is enabled, detailed debug information
+    will be printed to the console during operations.
+    """
+    CONFIG[:debug_mode] = enabled
+end
+
+function debug_mode()
+    """
+    Check if debug mode is currently enabled.
+    Returns: Bool indicating whether debug mode is enabled.
+    """
+    return CONFIG[:debug_mode]
+end
+
+
+
 function configure_offline_mode(enabled::Bool)
     CONFIG[:offline_mode] = enabled
 end
@@ -121,7 +161,25 @@ Keyword arguments:
 
 Example:
 ```julia
-configure_github_backend(
+# Configure model selection
+configure_backend(
+    :local,
+    model = :qwen2_5_coder  # Available models: qwen2.5, qwen2.5-coder, oscar-coder
+)
+
+# Configure model selection
+configure_backend(
+    :remote,
+    model = :qwen2_5  # Available models: qwen2.5, qwen2.5-coder
+)
+
+# Configure model selection
+configure_backend(
+    :huggingface,
+    model = :qwen2_5_coder  # Available models: qwen2.5, qwen2.5-coder
+)
+
+# Configure GitHub backend
     repo="username/repo",
     token="github_token",
     model="llama2",
@@ -157,64 +215,43 @@ function process_statement(statement::String; backend=nothing, kwargs...)
         error("Statement not found in dictionary and offline mode is enabled")
     end
 
-    # Check dictionary based on configured mode
-    dict_mode = CONFIG[:dictionary_mode]
-    if dict_mode != :disabled && haskey(SEED_DICTIONARY, statement)
-        return SEED_DICTIONARY[statement]
-    elseif dict_mode == :only
-        error("Statement not found in dictionary and dictionary_mode is :only")
+    # If statement is in dictionary, use it directly
+    for entry in values(SEED_DICTIONARY)
+        if entry["input"] == statement
+            return entry["output"]
+        end
     end
 
-    # If we're in offline mode, we shouldn't reach here
-    if CONFIG[:offline_mode]
-        error("Offline mode is enabled - cannot use LLM backends")
-    end
-
-    # Use configured default if no backend specified
-    actual_backend = isnothing(backend) ? CONFIG[:default_backend] : backend
+    # Read the prompt template
+    template = read("prompt_template.txt", String)
     
-    # Get backend settings and merge with kwargs
-    settings = get(CONFIG[:backend_settings], actual_backend, Dict{Symbol,Any}())
-    merged_kwargs = merge(settings, Dict{Symbol,Any}(kwargs))
-
-    # Process with appropriate backend
-    try
-        if actual_backend == :local || actual_backend == :remote
-            return OscarAICoder.Backends.Local.process_statement_local(statement; url=merged_kwargs[:url])
-        elseif actual_backend == :huggingface
-            if isnothing(merged_kwargs[:api_key])
-                error("For the :huggingface backend, you must configure an api_key using configure_default_backend() or supply it as a keyword argument.")
-            end
-            return OscarAICoder.Backends.HuggingFace.process_statement_huggingface(statement; 
-                api_key=merged_kwargs[:api_key],
-                model=merged_kwargs[:model],
-                endpoint=merged_kwargs[:endpoint]
-            )
-        elseif actual_backend == :github
-            if isnothing(merged_kwargs[:token])
-                error("For the :github backend, you must configure a token using configure_github_backend() or supply it as a keyword argument.")
-            end
-            return OscarAICoder.Backends.GitHub.process_statement_github(statement; 
-                repo=merged_kwargs[:repo],
-                token=merged_kwargs[:token],
-                model=merged_kwargs[:model],
-                branch=merged_kwargs[:branch],
-                api_url=merged_kwargs[:api_url],
-                raw_url=merged_kwargs[:raw_url]
-            )
-        else
-            error("Unknown backend: $actual_backend")
-        end
-    catch e
-        if isa(e, HTTP.ConnectError) || isa(e, HTTP.RequestError)
-            if haskey(SEED_DICTIONARY, statement)
-                @warn "LLM backend failed, falling back to dictionary"
-                return SEED_DICTIONARY[statement]
-            else
-                error("Failed to connect to LLM backend and statement not found in dictionary")
-            end
-        end
-        rethrow(e)
+    # Replace the placeholders with actual content
+    prompt = replace(template, "[USER_INPUT]" => statement)
+    prompt = replace(prompt, "[OSCAR_CODE]" => "")  # This will be filled by the model
+    
+    # Get the current backend settings
+    backend = CONFIG[:default_backend]
+    settings = CONFIG[:backend_settings][backend]
+    
+    # Make the API request
+    response = HTTP.post(
+        settings[:url],
+        [
+            "Content-Type" => "application/json"
+        ],
+        JSON3.write(Dict(
+            "model" => settings[:model],
+            "prompt" => prompt,
+            "stream" => false
+        ))
+    )
+    
+    # Parse the response
+    result = JSON3.read(String(response.body))
+    return result["response"]
+        result = GitHub.process_statement_github(statement; repo=settings[:repo], model=settings[:model], token=settings[:token], branch=settings[:branch], api_url=settings[:api_url], raw_url=settings[:raw_url])
+    else
+        error("Unknown backend: $backend")
     end
 end
 
