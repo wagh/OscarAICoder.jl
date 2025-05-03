@@ -29,7 +29,8 @@ fi
 # Pull the llama3.3 model
 echo "Pulling llama3.3 model from remote server..."
 python3 -c "import requests
-response = requests.post('$OLLAMA_SERVER/api/pull', json={'name': 'llama3.3'})
+# response = requests.post('$OLLAMA_SERVER/api/pull', json={'name': 'llama3.3'})
+response = requests.post('$OLLAMA_SERVER/api/pull', json={'name': 'qwen2.5-coder'})
 response.raise_for_status()
 print('Successfully pulled llama3.3 model')"
 echo "Setup complete!"

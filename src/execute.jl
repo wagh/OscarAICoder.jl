@@ -1,9 +1,11 @@
+using Oscar
+using Base.Meta
+
 """
     execute_statement(oscar_code::String)
 
 Execute Oscar code and return the result.
 """
-using Oscar
 
 function execute_statement(oscar_code::String)
     
@@ -23,9 +25,7 @@ end
 Execute Oscar code and return the result in the specified format.
 Available formats: :string, :latex, :html
 """
-function execute_statement(oscar_code::String; output_format=:string)
-    # Initialize Oscar
-    using Oscar
+function execute_statement_with_format(oscar_code::String; output_format=:string)
     
     # Execute the code and capture the result
     try
