@@ -11,9 +11,18 @@ function execute_statement(oscar_code::String)
     
     # Execute the code and capture the result
     try
-        # Use eval to execute the code
-        result = eval(Meta.parse(oscar_code))
-        return result
+        # Split the code into lines
+        lines = split(strip(oscar_code), '\n')
+        
+        # Evaluate each line separately
+        for line in lines
+            if !isempty(strip(line))
+                eval(Meta.parse(line))
+            end
+        end
+        
+        # Return the last evaluated expression
+        return eval(Meta.parse(lines[end]))
     catch e
         error("Error executing Oscar code: $e\nCode: $oscar_code")
     end

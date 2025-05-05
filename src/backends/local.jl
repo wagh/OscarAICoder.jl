@@ -1,7 +1,8 @@
 module Local
 
 using HTTP, JSON
-using OscarAICoder.Utils: debug_print
+using OscarAICoder
+using OscarAICoder: SEED_DICTIONARY
 
 const DEFAULT_LLM_URL = "http://localhost:11434/api/generate"
 const DEFAULT_MODEL = "llama3.3"
@@ -50,38 +51,38 @@ Statement: $statement
         
         # Make the request with proper URL construction
         response = HTTP.request("POST", url, ["Content-Type" => "application/json"], JSON.json(data))
-        println("Response received")
-        println("Response status: ", response.status)
-        println("Response headers: ", response.headers)
+        debug_print("Response received", prefix="[INFO]")
+        debug_print("Response status: $(response.status)", prefix="[INFO]")
+        debug_print("Response headers: $(Dict(response.headers))", prefix="[INFO]")
         # Parse the response once
         response_body = String(response.body)
-        println("Response body: ", response_body)
+        debug_print("Response body: $response_body", prefix="[INFO]")
         
         try
             result = JSON.parse(response_body)
-            println("Parsed result: ", result)
+            debug_print("Parsed result: $result", prefix="[INFO]")
             
             # Ollama returns the response in the "response" field
             if haskey(result, "response")
                 code = result["response"]
-                println("Generated code: ", code)
+                debug_print("Generated code: $code", prefix="[INFO]")
                 return code
             else
-                println("Error: Response does not contain 'response' field")
-                println("Available fields: ", keys(result))
+                debug_print("Error: Response does not contain 'response' field", prefix="[ERROR]")
+                debug_print("Available fields: $(keys(result))", prefix="[ERROR]")
                 throw(ErrorException("Response format unexpected"))
             end
         catch e
-            println("Error parsing JSON: ", e)
-            println("Raw response body length: ", length(response_body))
-            println("First 100 characters: ", response_body[1:100])
+            debug_print("Error parsing JSON: $e", prefix="[ERROR]")
+            debug_print("Raw response body length: $(length(response_body))", prefix="[ERROR]")
+            debug_print("First 100 characters: $(response_body[1:100])", prefix="[ERROR]")
             throw(e)
         end
     catch e
-        println("Error in local backend: ", e)
+        debug_print("Error in local backend: $e", prefix="[ERROR]")
         if response !== nothing
-            println("Response status: ", response.status)
-            println("Response body: ", String(response.body))
+            debug_print("Response status: $(response.status)", prefix="[ERROR]")
+            debug_print("Response body: $(String(response.body))", prefix="[ERROR]")
         end
         rethrow(e)
     end

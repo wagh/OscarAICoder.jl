@@ -2,6 +2,8 @@ module GitHub
 
 using HTTP
 using JSON
+using OscarAICoder
+using OscarAICoder: SEED_DICTIONARY
 
 """
     process_statement_github(statement::String; kwargs...)

@@ -2,6 +2,8 @@ module HuggingFace
 
 using HTTP
 using JSON
+using OscarAICoder
+using OscarAICoder: SEED_DICTIONARY
 
 """
     process_statement_huggingface(statement::String; kwargs...)

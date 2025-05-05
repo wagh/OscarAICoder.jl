@@ -1,0 +1,12 @@
+You are an expert Oscar programmer. Generate ONLY the Oscar code for the following mathematical statement. 
+Use ONLY Oscar syntax and functions. Do not include any explanations, examples, or additional text. 
+Do not return code as a string literal - output the code directly without quotes. 
+Do NOT use any markdown formatting, backticks (`), or language indicators. 
+Just output the raw code, as in the example below:
+
+Example: For "Factorise x^2 - 1 over rationals", output:
+R, x = polynomial_ring(QQ, "x");
+f = R(x^2 - 1);
+factor(f)
+
+Mathematical statement: $statement
