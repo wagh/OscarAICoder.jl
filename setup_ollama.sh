@@ -6,6 +6,7 @@ set -e
 # Configuration
 # OLLAMA_SERVER="http://server01.mydomain.net:11434"
 OLLAMA_SERVER="http://localhost:11434"
+MODEL="qwen2.5-coder"
 
 # Check if Ollama server is accessible
 echo "Checking Ollama server at $OLLAMA_SERVER..."
@@ -27,10 +28,10 @@ else
 fi
 
 # Pull the llama3.3 model
-echo "Pulling llama3.3 model from remote server..."
+echo "Pulling $MODEL model from remote server..."
 python3 -c "import requests
-# response = requests.post('$OLLAMA_SERVER/api/pull', json={'name': 'llama3.3'})
-response = requests.post('$OLLAMA_SERVER/api/pull', json={'name': 'qwen2.5-coder'})
+response = requests.post('$OLLAMA_SERVER/api/pull', json={'name': '$MODEL'})
+# response = requests.post('$OLLAMA_SERVER/api/pull', json={'name': 'qwen2.5-coder'})
 response.raise_for_status()
-print('Successfully pulled llama3.3 model')"
+print('Successfully pulled $MODEL model')"
 echo "Setup complete!"
