@@ -18,7 +18,7 @@ include("src/seed_dictionary.jl")
 
 # Convert dictionary entries to input/output pairs
 examples = []
-for (input, output) in SEED_DICTIONARY
+for (input, output) in SeedDictionary.SEED_DICTIONARY
     push!(examples, Dict("input" => input, "output" => output))
 end
 
@@ -44,6 +44,7 @@ python3 << END
 import requests
 import json
 import os
+from datetime import datetime
 
 # Read training data
 with open('training_data.json', 'r') as f:
@@ -116,7 +117,8 @@ try:
     print("Model creation initiated successfully")
     
     # Get the model status
-    while True:
+    ready = False
+    while not ready:
         status_response = requests.get(f"{OLLAMA_SERVER}/api/tags")
         status_response.raise_for_status()
         
@@ -138,14 +140,16 @@ try:
                     print(f"Model status: ready")
                     print("Fine-tuning completed successfully!")
                     print(f"Fine-tuned model saved as: {FINE_TUNED_MODEL_NAME}")
+                    ready = True
                     break
             else:
-                print("Model status: training")
+                print(f"Model status: training (as of {datetime.now().strftime('%Y-%m-%d %H:%M:%S')})")
                 import time
                 time.sleep(30)  # Check every 30 seconds
                 continue
             
-            break
+            if ready:
+                break
         except json.JSONDecodeError as e:
             print(f"Error parsing JSON: {e}")
             print("Raw response:", status_response.text)
