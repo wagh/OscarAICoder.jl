@@ -1,5 +1,11 @@
-using Oscar
 using Base.Meta
+
+# Load Oscar only when needed
+function load_oscar()
+    global Oscar
+    Oscar = Base.require(Base.PkgId(Base.UUID("f1435218-dba5-11e9-1e4d-f1a5fab5fc13"), "Oscar"))
+    return Oscar
+end
 
 """
     execute_statement(oscar_code::String)
@@ -8,6 +14,9 @@ Execute Oscar code and return the result.
 """
 
 function execute_statement(oscar_code::String)
+    
+    # Load Oscar only when needed
+    Oscar = load_oscar()
     
     # Execute the code and capture the result
     try
@@ -35,6 +44,9 @@ Execute Oscar code and return the result in the specified format.
 Available formats: :string, :latex, :html
 """
 function execute_statement_with_format(oscar_code::String; output_format=:string)
+    
+    # Load Oscar only when needed
+    Oscar = load_oscar()
     
     # Execute the code and capture the result
     try
