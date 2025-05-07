@@ -48,3 +48,6 @@ manual.pdf
 # Test output
 doc/tst/*.out
 doc/tst/*.log
+
+# Temp files are kept in this folder
+tmp/

@@ -91,6 +91,74 @@ Pkg.add("OscarAICoder")
 
 The primary function in OscarAICoder.jl is \texttt{process\_statement}, which takes an English mathematical statement and returns the corresponding Oscar code.
 
+\subsection{Mode Configuration}
+
+OscarAICoder.jl supports different modes of operation:
+
+\subsubsection{Training Mode}
+
+Training mode uses a comprehensive template to guide the LLM in generating Oscar code:
+
+\begin{lstlisting}
+using OscarAICoder
+
+# Enable training mode
+training_mode!(true)
+
+# Process statement in training mode
+process_statement("Define a polynomial ring R with variable x over QQ")
+# Uses full template with detailed instructions
+\end{lstlisting}
+
+\subsubsection{Context Mode}
+
+Context mode maintains conversation history to help generate more accurate and consistent Oscar code:
+
+\begin{lstlisting}
+using OscarAICoder
+
+# First statement in context mode
+process_statement("Define a polynomial ring R with variable x over QQ")
+# Uses normal prompt template
+
+# Subsequent statement
+process_statement("Define the polynomial f = x^2 + 1")
+# Uses conversation history with clear instructions
+\end{lstlisting}
+
+\subsection{Backend Configuration}
+
+OscarAICoder.jl supports multiple backends for generating Oscar code:
+
+\subsubsection{Local Backend}
+
+Configure the local backend with:
+
+\begin{lstlisting}
+using OscarAICoder
+
+# Configure local backend
+configure_default_backend(
+    :local,
+    url="http://localhost:11434/api/generate",
+    model="qwen2.5-coder"
+)
+\end{lstlisting}
+
+\subsubsection{HuggingFace Backend}
+
+Configure the HuggingFace backend with:
+
+\begin{lstlisting}
+using OscarAICoder
+
+# Configure HuggingFace backend
+configure_github_backend(
+    api_key="your_api_key",
+    model="your_model_name"
+)
+\end{lstlisting}
+
 \subsection{Dictionary Mode}
 
 The package includes a built-in dictionary of common mathematical statements. You can configure how it's used:
@@ -99,10 +167,68 @@ The package includes a built-in dictionary of common mathematical statements. Yo
 using OscarAICoder
 
 # Try dictionary first, then LLM
-configure_dictionary_mode(true)
+configure_dictionary_mode(:priority)
 
 # Try LLM first, then dictionary
-configure_dictionary_mode(false)
+configure_dictionary_mode(:llm_first)
+
+# Disable dictionary entirely
+configure_dictionary_mode(:disabled)
+\end{lstlisting}
+
+\subsection{Context Management}
+
+OscarAICoder.jl maintains conversation context to help generate more accurate and consistent Oscar code:
+
+\subsubsection{Context History}
+
+The context history is automatically managed:
+\begin{itemize}
+    \item Stores conversation history as tuples of (role, text)
+    \item Maintains a maximum history length (default: 5 interactions)
+    \item Automatically trims older interactions when history exceeds limit
+\end{itemize}
+
+\subsubsection{Clearing Context}
+
+You can clear the context at any time:
+
+\begin{lstlisting}
+using OscarAICoder
+
+# Clear context for fresh session
+process_statement("Define a polynomial ring R with variable x over QQ", clear_context=true)
+\end{lstlisting}
+
+\subsection{Code Execution}
+
+Once you have Oscar code, you can execute it using:
+
+\begin{lstlisting}
+using OscarAICoder
+
+# Generate Oscar code
+oscar_code = process_statement("Define a polynomial ring R with variable x over QQ")
+
+# Execute the code
+result = execute_statement(oscar_code)
+
+# Execute with specific output format
+result = execute_statement_with_format(oscar_code, output_format=:latex)
+\end{lstlisting}
+
+\subsection{Debugging}
+
+Enable debug mode to see detailed information about the processing:
+
+\begin{lstlisting}
+using OscarAICoder
+
+# Enable debug mode
+debug_mode!(true)
+
+# Process statement with debug output
+process_statement("Define a polynomial ring R with variable x over QQ")
 \end{lstlisting}
 
 \subsection{Backend Configuration}

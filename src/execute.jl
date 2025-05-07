@@ -17,10 +17,16 @@ function execute_statement(oscar_code::String)
     
     # Load Oscar only when needed
     Oscar = load_oscar()
+    debug_print("Starting Oscar execution")
     
     # Execute the code and capture the result
     try
-        # Split the code into lines
+        # Ensure Oscar is imported
+        eval(Meta.parse("using Oscar"))
+        
+        # Split the code into lines and evaluate
+        debug_print("Code: $oscar_code")
+        debug_print("Splitting code into lines")
         lines = split(strip(oscar_code), '\n')
         
         # Evaluate each line separately
