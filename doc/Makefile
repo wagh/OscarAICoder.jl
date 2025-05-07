@@ -1,14 +1,18 @@
 PDF = manual.pdf
-TEX = $(PDF:.pdf=.tex)
+TEX = manual.tex
 
 all: $(PDF)
+doc: $(PDF)
 
 $(PDF): $(TEX)
 	pdflatex $(TEX)
 	pdflatex $(TEX)
-	bibtex $(TEX)
 	pdflatex $(TEX)
 	pdflatex $(TEX)
 
+cleanall:
+	rm -f *.aux *.log *.out *.toc
+	rm -f *.pdf
+
 clean:
-	rm -f *.aux *.log *.out *.toc *.bbl *.blg *.pdf
+	rm -f *.aux *.log *.out *.toc

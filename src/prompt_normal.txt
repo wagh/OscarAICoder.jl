@@ -9,4 +9,4 @@ R, x = polynomial_ring(QQ, "x");
 f = R(x^2 - 1);
 factor(f)
 
-Mathematical statement: $statement
+Mathematical statement: [statement]
