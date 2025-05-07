@@ -271,7 +271,7 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
                 end
 
                 # Add the current statement with clear instruction
-                context_prompt *= "\nuser: Generate Oscar code for: $statement\nassistant:"
+                context_prompt *= "\nuser: Give only the additional lines of code.\nGenerate Oscar code for: $statement\nassistant:"
                 prompt = context_prompt
                 debug_print("Prompt in context mode (subsequent statement): $prompt")
             end
@@ -360,9 +360,29 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
             response_code = replace(response_code, r"\$statement" => "x^3-1")  # Replace statement variable
             response_code = strip(response_code)
 
-            # If we still don't have valid Oscar code, raise an error
-            if !occursin("R,", response_code) && !occursin("ideal", response_code) && !occursin("factor", response_code)
-                error("Could not generate valid Oscar code from response: $response_code")
+            # Try to parse each line of the code to check if it's valid Oscar syntax
+            try
+                # Split the code into lines
+                lines = split(strip(response_code), '\n')
+                
+                # Validate each line
+                for line in lines
+                    if !isempty(strip(line))
+                        parsed_line = Meta.parse(line)
+                        if !isa(parsed_line, Expr)
+                            error("Generated code contains invalid expression: $line")
+                        end
+                    end
+                end
+                
+                # Check if the code contains any undefined variables
+                vars = filter(x -> !isa(x, Symbol), collect(Base.names(Main)))
+                code_vars = unique([x for x in vars if occursin(string(x), response_code)])
+                if !isempty(code_vars)
+                    error("Generated code contains undefined variables: $(join(code_vars, ", "))")
+                end
+            catch e
+                error("Could not parse Oscar code: $response_code. Error: $e")
             end
 
             # If the code ends with print statement, extract just the expression
