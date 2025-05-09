@@ -51,3 +51,6 @@ doc/tst/*.log
 
 # Temp files are kept in this folder
 tmp/
+
+# Specific to CIP server
+.nfs*
