@@ -80,11 +80,75 @@ OscarAICoder.jl is a Julia package designed to bridge the gap between natural la
 
 \section{Installation}
 
+\subsection{Basic Installation}
 To install OscarAICoder.jl, use the Julia package manager:
 
 \begin{lstlisting}
 using Pkg
 Pkg.add("OscarAICoder")
+\end{lstlisting}
+
+\subsection{LLM Backend Setup}
+
+\subsubsection{Local LLM Server Setup (Recommended)}
+
+1. Install Ollama:
+\begin{lstlisting}[language=bash]
+# Download the setup script
+wget https://raw.githubusercontent.com/wagh/OscarAICoder.jl/main/setup_ollama.sh
+chmod +x setup_ollama.sh
+
+# Run the setup script
+./setup_ollama.sh
+\end{lstlisting}
+
+The setup script will:
+\begin{itemize}
+    \item Check if Ollama is installed
+    \item Install Ollama if needed
+    \item Start the Ollama server
+    \item Pull the required model (qwen2.5-coder)
+\end{itemize}
+
+2. After installation, the local backend will be ready to use:
+\begin{lstlisting}
+using OscarAICoder
+oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers.")
+\end{lstlisting}
+
+\subsubsection{Remote Ollama Server Setup}
+
+1. Ensure you have access to a remote Ollama server
+2. Configure the remote backend:
+\begin{lstlisting}
+using OscarAICoder
+configure_default_backend(:remote, Dict(
+    :url => "http://your-server:11434"
+))
+\end{lstlisting}
+
+\subsubsection{GitHub-hosted LLM Setup}
+
+1. Ensure you have a GitHub account and access to the model repository
+2. Configure the GitHub backend:
+\begin{lstlisting}
+using OscarAICoder
+configure_default_backend(:github, Dict(
+    :repo => "your-username/llm-model",
+    :model => "math_model.bin",
+    :token => ENV["GITHUB_TOKEN"]
+))
+\end{lstlisting}
+
+\subsubsection{Hugging Face Setup}
+
+1. Get an API key from Hugging Face (https://huggingface.co/settings/tokens)
+2. Configure the Hugging Face backend:
+\begin{lstlisting}
+using OscarAICoder
+configure_default_backend(:huggingface, Dict(
+    :api_key => "your_api_key"
+))
 \end{lstlisting}
 
 \section{Basic Usage}

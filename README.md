@@ -12,42 +12,100 @@ A Julia package that translates English mathematical statements into Oscar code 
 - Built-in dictionary of common mathematical statements
 - Configurable dictionary usage modes
 
-## Requirements
-- Julia
-- Oscar.jl
-- HTTP.jl, JSON.jl
-- One of the following:
-  - **Local/Remote LLM server** (e.g., [Ollama](https://ollama.com/)) running and accessible via HTTP
-  - **GitHub account** with access to model repository
-  - **Hugging Face API key**
+## Setup Instructions
 
-## Usage
+### 1. Basic Requirements
+- Julia 1.6 or later
+- Oscar.jl package
+- HTTP.jl and JSON.jl packages
 
-### Configuration
-First, configure your preferred backend and dictionary mode:
+### 2. Setting Up LLM Backends
 
+#### Local LLM Server (Recommended)
+1. Install Ollama:
+   - Download the setup script:
+   ```bash
+   wget https://raw.githubusercontent.com/wagh/OscarAICoder.jl/main/setup_ollama.sh
+   chmod +x setup_ollama.sh
+   ```
+   - Run the setup script:
+   ```bash
+   ./setup_ollama.sh
+   ```
+   - The script will:
+     - Check if Ollama is installed
+     - Install Ollama if needed
+     - Start the Ollama server
+     - Pull the required model (qwen2.5-coder)
+
+2. After installation, the local backend will be ready to use:
+   ```julia
+   using OscarAICoder
+   oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers.")
+   ```
+
+#### Remote Ollama Server
+1. Ensure you have access to a remote Ollama server
+2. Configure the remote backend:
+   ```julia
+   configure_default_backend(:remote, Dict(
+       :url => "http://your-server:11434"
+   ))
+   ```
+
+#### GitHub-hosted LLM
+1. Ensure you have a GitHub account and access to the model repository
+2. Configure the GitHub backend:
+   ```julia
+   configure_default_backend(:github, Dict(
+       :repo => "your-username/llm-model",
+       :model => "math_model.bin",
+       :token => ENV["GITHUB_TOKEN"]
+   ))
+   ```
+
+#### Hugging Face
+1. Get an API key from Hugging Face (https://huggingface.co/settings/tokens)
+2. Configure the Hugging Face backend:
+   ```julia
+   configure_default_backend(:huggingface, Dict(
+       :api_key => "your_api_key"
+   ))
+   ```
+
+### 3. Additional Configuration
+
+#### Dictionary Mode
+The package uses a built-in dictionary of common mathematical statements. You can configure how it uses this dictionary:
+
+```julia
+# Try dictionary first, then LLM (default)
+configure_dictionary_mode(:priority)
+
+# Use dictionary only (no LLM)
+configure_dictionary_mode(:only)
+
+# Disable dictionary (always use LLM)
+configure_dictionary_mode(:disabled)
+```
+
+## Usage Examples
+
+### Basic Usage
 ```julia
 using OscarAICoder
 
-# Configure dictionary mode
-configure_dictionary_mode(:priority)  # Try dictionary first, then LLM
-# Other options: :only (dictionary only), :disabled (always use LLM)
-
-# Configure your preferred backend
-configure_default_backend(:local)  # Use local Ollama
-```
-
-### Using the Local Backend (default)
-```julia
-# Local Ollama
+# Process a simple statement
 oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers.")
 ```
 
-### Using a Remote Ollama Server
+### Advanced Usage
+
+#### Switching Backends
 ```julia
-# Configure remote server
-configure_default_backend(:remote, Dict(:url => "http://server01.mydomain.net:11434"))
-oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers.")
+# Configure and use different backends
+configure_default_backend(:huggingface, Dict(:api_key => "your_api_key"))
+oscar_code = process_statement("Find all prime numbers less than 20.")
 ```
 
 ### Using a GitHub-hosted LLM
