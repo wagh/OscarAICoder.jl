@@ -45,7 +45,11 @@ const CONFIG = Dict{Symbol, Any}(
     :dictionary_mode => :priority,
     :offline_mode => false,
     :debug_mode => false,
-    :training_mode => false
+    :training_mode => false,
+    :context => Dict(
+        :history => [],  # Store conversation history
+        :max_history => 5  # Maximum number of previous interactions to keep
+    )
 )
 
 # Debug system
@@ -190,145 +194,337 @@ function configure_github_backend(; kwargs...)
     end
 end
 
-function process_statement(statement::String; backend=nothing, kwargs...)
-    if CONFIG[:offline_mode] && !has_in_dictionary(statement)
-        error("Statement not found in dictionary and offline mode is enabled")
-    end
-
-    # First try dictionary
-    if CONFIG[:dictionary_mode] != :disabled
-        if has_in_dictionary(statement)
-            return get_from_dictionary(statement)
+function process_statement(statement::String; backend=nothing, clear_context=false, kwargs...)
+    try
+        # Clear context if requested
+        if clear_context
+            CONFIG[:context][:history] = []
         end
-    end
 
-    # Prepare the prompt based on training mode
-    if CONFIG[:training_mode]
-        # Use full prompt template for training
-        template = read(joinpath(@__DIR__, "prompt_template.txt"), String)
-        prompt = replace(template, "[USER_INPUT]" => statement)
-        prompt = replace(prompt, "[OSCAR_CODE]" => "")
-    else
-        # Use simple prompt for normal mode
-        template = read(joinpath(@__DIR__, "prompt_normal.txt"), String)
-        prompt = replace(template, "$statement" => statement)
-    end
+        # Check if this is the first statement in context mode
+        is_first_statement = isempty(CONFIG[:context][:history])
 
-    # Get the backend function based on configuration
-    backend = CONFIG[:default_backend]
-    settings = CONFIG[:backend_settings][backend]
-    
-    # Call the appropriate backend function
-    if backend == :local
-        return Local.process_statement_local(statement; llm_url=settings[:url], model=settings[:model])
-    elseif backend == :huggingface
-        return HuggingFace.process_statement_huggingface(statement; api_key=settings[:api_key], model=settings[:model])
-    elseif backend == :github
-        return GitHub.process_statement_github(statement; token=settings[:token], repo=settings[:repo])
-    else
-        error("Unknown backend: $backend")
-    end
+        # Add current statement to history
+        push!(CONFIG[:context][:history], ("user", statement))
+        
+        # Keep only last N interactions
+        if length(CONFIG[:context][:history]) > CONFIG[:context][:max_history]
+            CONFIG[:context][:history] = CONFIG[:context][:history][end-CONFIG[:context][:max_history]+1:end]
+        end
 
-    # Clean the response to make it directly executable
-    # Remove code block markers and language indicators
-    response_code = replace(response_code, r"```oscar\n?" => "")
-    response_code = replace(response_code, r"```\n?" => "")
-    response_code = replace(response_code, r"``\n?" => "")
-    response_code = replace(response_code, r"```
-?" => "")
-    response_code = replace(response_code, r"`\n?" => "")
-    response_code = replace(response_code, r"`" => "")
-    response_code = replace(response_code, r"\`" => "")
-    
-    # Remove language indicators and extra whitespace
-    response_code = replace(response_code, r"\s*Oscar\s*" => "")
-    response_code = replace(response_code, r"\s*oscar\s*" => "")
-    response_code = replace(response_code, r"\s*using\s*Oscar\s*" => "")  # Remove using Oscar if present
-    response_code = strip(response_code)
-    
-    # Handle string literals and escapes
-    # Unescape quotes in string literals
-    response_code = replace(response_code, r"(\"|\')([^\\]+)(\"|\')" => s"\1\2\3")
-    
-    # Handle escaped newlines
-    # First replace escaped newlines in string literals
-    response_code = replace(response_code, r"(\"|\')([^\\]+)(\\n)([^\\]+)(\"|\')" => s"\1\2\n\4\5")
-    # Then replace escaped newlines in code
-    response_code = replace(response_code, r"\\n" => "\n")
-    
-    # Handle escaped quotes in string literals
-    response_code = replace(response_code, r"\\\"" => "\"")
-    response_code = replace(response_code, r"\\\'" => "\'")
-    
-    # Handle escaped tabs
-    response_code = replace(response_code, r"\\t" => "\t")
-    
-    # Remove any remaining escape sequences
-    response_code = replace(response_code, r"\\(.)" => s"\1")
-    response_code = replace(response_code, r"\"\"\".*?\"\"\""s => "")  # Remove string literals
-    
-    # Remove any comments
-    response_code = replace(response_code, r"#.*?\n" => "")
-    
-    # Remove any print statements
-    response_code = replace(response_code, r"print\(.*?\)" => "")
-    
-    # Remove any Python-specific syntax
-    response_code = replace(response_code, r"result =" => "")
-    response_code = replace(response_code, r"\nresult" => "")
-    
-    # Replace statement variable with actual polynomial
-    response_code = replace(response_code, r"statement" => "x^3-1")
-    response_code = replace(response_code, r"\$statement" => "x^3-1")
-    
-    # Remove any leading/trailing whitespace
-    response_code = strip(response_code)
-    
-    # If the response is still not valid Oscar code, try to construct it
-    if !occursin("R,", response_code) && !occursin("ideal", response_code) && !occursin("factor", response_code)
-        # Try to construct Oscar code from the statement
-        if contains(lowercase(statement), "factorise") || contains(lowercase(statement), "factor")
-            # Look for polynomial expressions
-            # Using simple string operations instead of regex
-            poly = lowercase(statement)
-            if contains(poly, "factorise")
-                poly = replace(poly, "factorise" => "")
-            elseif contains(poly, "factor")
-                poly = replace(poly, "factor" => "")
+        # Store the first statement flag in CONFIG
+        CONFIG[:context][:is_first_statement] = is_first_statement
+
+        if CONFIG[:offline_mode] && !has_in_dictionary(statement)
+            error("Statement not found in dictionary and offline mode is enabled")
+        end
+
+        # First try dictionary
+        if CONFIG[:dictionary_mode] != :disabled
+            if has_in_dictionary(statement)
+                response = get_from_dictionary(statement)
+                push!(CONFIG[:context][:history], ("assistant", response))
+                return response
             end
-            poly = strip(poly)
-            
-            # Remove any "over rationals" phrase
-            poly = replace(poly, "over rationals" => "")
-            poly = strip(poly)
-            
-            response_code = "R, x = polynomial_ring(QQ, \"x\"); f = R($poly); factor(f)"
         end
-    end
-    
-    # If we still don't have valid Oscar code, raise an error
-    if !occursin("R,", response_code) && !occursin("ideal", response_code) && !occursin("factor", response_code)
-        error("Could not generate valid Oscar code from response: $response_code")
-    end
-    
-    # If the code ends with print statement, extract just the expression
-    print_match = match(r"print\((.*)\)$", response_code)
-    if print_match !== nothing
-        response_code = print_match.captures[1]
-    end
 
-    if CONFIG[:training_mode]
-        println("\nGenerated Oscar code:")
-        println("-------------------")
-        println(response_code)
-        println("\nWould you like to add this to the training dictionary? (y/n)")
-        if readline() == "y"
-            add_to_dictionary(statement, String(response_code))  # Convert to String
-            println("Successfully added to training dictionary!")
+        # Get the backend to use
+        if backend === nothing
+            backend = CONFIG[:default_backend]
         end
+
+        # Get backend settings
+        backend_settings = CONFIG[:backend_settings][backend]
+        
+        # Get the model to use
+        model = get(kwargs, :model, backend_settings[:model])
+
+        # Get the URL to use
+        url = get(kwargs, :url, backend_settings[:url])
+
+        # Get any additional parameters
+        params = get(kwargs, :params, Dict{String, Any}())
+
+        # Prepare the prompt based on mode
+        if CONFIG[:training_mode]
+            # Training mode: Use template
+            template = read(joinpath(@__DIR__, "prompt_template.txt"), String)
+            prompt = replace(template, "[USER_INPUT]" => statement)
+            prompt = replace(prompt, "[OSCAR_CODE]" => "")
+            debug_print("Prompt in training mode: $prompt")
+        else
+            # Context mode
+            debug_print("Context history: $(CONFIG[:context][:history])")
+            if CONFIG[:context][:is_first_statement]
+                # First statement in context mode: Use normal prompt
+                template = read(joinpath(@__DIR__, "prompt_normal.txt"), String)
+                prompt = replace(template, "[statement]" => statement)
+                debug_print("Prompt in context mode (first statement): $prompt")
+            else
+                # Subsequent statements in context mode
+                # Start with a brief instruction to maintain Oscar code format
+                context_prompt = "You are an expert Oscar programmer. Generate ONLY the Oscar code for the following mathematical statement. Use ONLY Oscar syntax and functions.\n\n"
+                
+                # Add conversation history
+                for (role, text) in CONFIG[:context][:history]
+                    context_prompt *= "\n$role: $text"
+                end
+
+                # Add the current statement with clear instruction
+                context_prompt *= "\nuser: Give only the additional lines of code.\nGenerate Oscar code for: $statement\nassistant:"
+                prompt = context_prompt
+                debug_print("Prompt in context mode (subsequent statement): $prompt")
+            end
+        end
+
+        # Send the request with context
+        data = Dict(
+            "model" => model,
+            "prompt" => prompt,
+            "stream" => false,
+            "n_predict" => get(params, "n_predict", 256),
+            "temperature" => get(params, "temperature", 0.7),
+            "stop" => get(params, "stop", ["\nuser:", "\nassistant:"])
+        )
+
+        debug_print("=== Debugging process_statement ===")
+        debug_print("Backend: $backend")
+        debug_print("Model: $model")
+        debug_print("URL: $url")
+        debug_print("Prompt: $prompt")
+        debug_print("Request data: $data")
+
+        # Ensure we don't have a trailing slash in the URL
+        if endswith(url, '/')
+            url = url[1:end-1]
+        end
+
+        debug_print("Final URL: $url")
+        debug_print("Making request...")
+
+        # Try different request formats since the API might expect different parameter names
+        try
+            # First try with the original format
+            response = HTTP.post(url,;
+                headers = Dict("Content-Type" => "application/json"),
+                body = JSON.json(data)
+            )
+            
+            if response.status != 200
+                error("HTTP error: $(response.status)\nResponse: $(String(response.body))")
+            end
+
+            response_body = JSON.parse(String(response.body))
+            debug_print("Response body: $response_body")
+            debug_print("Available keys: $(keys(response_body))")
+
+            # Try to get the response text from different possible keys
+            if haskey(response_body, "content")
+                response_text = response_body["content"]
+            elseif haskey(response_body, "text")
+                response_text = response_body["text"]
+            elseif haskey(response_body, "generated_text")
+                response_text = response_body["generated_text"]
+            elseif haskey(response_body, "response")
+                response_text = response_body["response"]
+            else
+                # If no text key found, try to get the response from the body directly
+                response_text = String(response.body)
+            end
+
+            # Add response to history
+            push!(CONFIG[:context][:history], ("assistant", response_text))
+
+            # Clean the response to make it directly executable
+            response_code = response_text
+            response_code = replace(response_code, r"```oscar\n?" => "")
+            response_code = replace(response_code, r"``\n?" => "")
+            response_code = replace(response_code, r"``\n?" => "")
+            response_code = replace(response_code, r"```
+?" => "")
+            response_code = replace(response_code, r"`\n?" => "")
+            response_code = replace(response_code, r"\`" => "")
+
+            # Remove language indicators and extra whitespace
+            response_code = replace(response_code, r"\s*Oscar\s*" => "")
+            response_code = replace(response_code, r"\s*oscar\s*" => "")
+            response_code = strip(response_code)
+
+            # Handle string literals and escapes
+            response_code = replace(response_code, r"\"\"\".*?\"\"\""s => "")  # Remove string literals
+            response_code = replace(response_code, r"#.*?\n" => "")  # Remove comments
+            response_code = replace(response_code, r"print\(.*?\)" => "")  # Remove print statements
+            response_code = replace(response_code, r"result =" => "")  # Remove result assignments
+            response_code = replace(response_code, r"\nresult" => "")  # Remove result assignments
+            response_code = replace(response_code, r"statement" => "x^3-1")  # Replace statement variable
+            response_code = replace(response_code, r"\$statement" => "x^3-1")  # Replace statement variable
+            response_code = strip(response_code)
+
+            # Try to parse each line of the code to check if it's valid Oscar syntax
+            try
+                # Split the code into lines
+                lines = split(strip(response_code), '\n')
+                
+                # Validate each line
+                for line in lines
+                    if !isempty(strip(line))
+                        parsed_line = Meta.parse(line)
+                        if !isa(parsed_line, Expr)
+                            error("Generated code contains invalid expression: $line")
+                        end
+                    end
+                end
+                
+                # Check if the code contains any undefined variables
+                vars = filter(x -> !isa(x, Symbol), collect(Base.names(Main)))
+                code_vars = unique([x for x in vars if occursin(string(x), response_code)])
+                if !isempty(code_vars)
+                    error("Generated code contains undefined variables: $(join(code_vars, ", "))")
+                end
+            catch e
+                error("Could not parse Oscar code: $response_code. Error: $e")
+            end
+
+            # If the code ends with print statement, extract just the expression
+            print_match = match(r"print\((.*)\)$", response_code)
+            if print_match !== nothing
+                response_code = print_match.captures[1]
+            end
+
+            # Handle training mode
+            if CONFIG[:training_mode]
+                println("\nGenerated Oscar code:")
+                println("-------------------")
+                println(response_code)
+                println("\nWould you like to add this to the training dictionary? (y/n)")
+                if readline() == "y"
+                    add_to_dictionary(statement, String(response_code))
+                    println("Successfully added to training dictionary!")
+                end
+            end
+
+            return String(response_code)
+        catch e
+            error("Error processing statement: $e")
+        end
+
+        debug_print_response(response)
+
+        if response.status != 200
+            error("HTTP error: $(response.status)\nResponse: $(String(response.body))")
+        end
+
+        response_body = JSON.parse(String(response.body))
+        debug_print("Response body: $response_body")  # Add debug to see the full response
+        debug_print("Available keys: $(keys(response_body))")  # Add debug to see available keys
+        
+        # Try to get the response text from different possible keys
+        if haskey(response_body, "content")
+            response_text = response_body["content"]
+        elseif haskey(response_body, "text")
+            response_text = response_body["text"]
+        elseif haskey(response_body, "generated_text")
+            response_text = response_body["generated_text"]
+        else
+            error("Could not find response text in API response: $(response_body)")
+        end
+
+        # Add response to history
+        push!(CONFIG[:context][:history], ("assistant", response_text))
+
+        # Clean the response to make it directly executable
+        response_code = response_text
+        response_code = replace(response_code, r"```oscar\n?" => "")
+        response_code = replace(response_code, r"``\n?" => "")
+        response_code = replace(response_code, r"``\n?" => "")
+        response_code = replace(response_code, r"```
+?" => "")
+        response_code = replace(response_code, r"`\n?" => "")
+        response_code = replace(response_code, r"\`" => "")
+
+        # Remove language indicators and extra whitespace
+        response_code = replace(response_code, r"\s*Oscar\s*" => "")
+        response_code = replace(response_code, r"\s*oscar\s*" => "")
+        # response_code = replace(response_code, r"\s*using\s*Oscar\s*" => "")  # Remove using Oscar if present
+        response_code = strip(response_code)
+
+        # Handle string literals and escapes
+        # Unescape quotes in string literals
+        # response_code = replace(response_code, r"("|\')([^\\]+)("|\')" => s"\1\2\3")
+
+        # Handle escaped tabs
+        response_code = replace(response_code, r"\\t" => "\t")
+        
+        # Remove any remaining escape sequences
+        response_code = replace(response_code, r"\\(.)" => s"\1")
+        response_code = replace(response_code, r"\"\"\".*?\"\"\""s => "")  # Remove string literals
+        
+        # Remove any comments
+        response_code = replace(response_code, r"#.*?\n" => "")
+        
+        # Remove any print statements
+        response_code = replace(response_code, r"print\(.*?\)" => "")
+        
+        # Remove any Python-specific syntax
+        response_code = replace(response_code, r"result =" => "")
+        response_code = replace(response_code, r"\nresult" => "")
+        
+        # Replace statement variable with actual polynomial
+        response_code = replace(response_code, r"statement" => "x^3-1")
+        response_code = replace(response_code, r"\$statement" => "x^3-1")
+        
+        # Remove any leading/trailing whitespace
+        response_code = strip(response_code)
+        
+        # If the response is still not valid Oscar code, try to construct it
+        if !occursin("R,", response_code) && !occursin("ideal", response_code) && !occursin("factor", response_code)
+            # Try to construct Oscar code from the statement
+            if contains(lowercase(statement), "factorise") || contains(lowercase(statement), "factor")
+                # Look for polynomial expressions
+                # Using simple string operations instead of regex
+                poly = lowercase(statement)
+                if contains(poly, "factorise")
+                    poly = replace(poly, "factorise" => "")
+                elseif contains(poly, "factor")
+                    poly = replace(poly, "factor" => "")
+                end
+                poly = strip(poly)
+                
+                # Remove any "over rationals" phrase
+                poly = replace(poly, "over rationals" => "")
+                poly = strip(poly)
+                
+                response_code = "R, x = polynomial_ring(QQ, \"x\"); f = R($poly); factor(f)"
+            end
+        end
+        
+        # If we still don't have valid Oscar code, raise an error
+        if !occursin("R,", response_code) && !occursin("ideal", response_code) && !occursin("factor", response_code)
+            error("Could not generate valid Oscar code from response: $response_code")
+        end
+        
+        # If the code ends with print statement, extract just the expression
+        print_match = match(r"print\((.*)\)$", response_code)
+        if print_match !== nothing
+            response_code = print_match.captures[1]
+        end
+
+        # Handle training mode
+        if CONFIG[:training_mode]
+            println("\nGenerated Oscar code:")
+            println("-------------------")
+            println(response_code)
+            println("\nWould you like to add this to the training dictionary? (y/n)")
+            if readline() == "y"
+                add_to_dictionary(statement, String(response_code))  # Convert to String
+                println("Successfully added to training dictionary!")
+            end
+        end
+        
+        return String(response_code)  # Ensure we return a proper String
+    catch e
+        error("Error processing statement: $e")
     end
-    
-    return String(response_code)  # Ensure we return a proper String
 end
 
 end # module OscarAICoder
