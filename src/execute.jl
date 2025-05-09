@@ -13,7 +13,7 @@ end
 Execute Oscar code and return the result.
 """
 
-function execute_statement(oscar_code::String)
+function execute_statement(oscar_code::String; clear_context=false)
     
     # Load Oscar only when needed
     Oscar = load_oscar()
@@ -23,6 +23,43 @@ function execute_statement(oscar_code::String)
     try
         # Ensure Oscar is imported
         eval(Meta.parse("using Oscar"))
+        
+        # Clear context if requested
+        if clear_context
+            CONFIG[:context][:history] = []
+        end
+
+        # Check if this is the first statement in context mode
+        is_first_statement = isempty(CONFIG[:context][:history])
+
+        # Add current statement to history
+        push!(CONFIG[:context][:history], ("user", oscar_code))
+        
+        # Keep only last N interactions
+        if length(CONFIG[:context][:history]) > CONFIG[:context][:max_history]
+            CONFIG[:context][:history] = CONFIG[:context][:history][end-CONFIG[:context][:max_history]+1:end]
+        end
+
+        # If this is the first statement, don't use history
+        if is_first_statement
+            debug_print("First statement, not using history")
+        else
+            # Process history entries, skipping duplicates
+            processed_code = Set{String}()
+            for (role, code) in CONFIG[:context][:history]
+                if role == "assistant" && !isempty(code) && !in(code, processed_code)
+                    debug_print("Processing history code: $code")
+                    # Split and evaluate each line
+                    lines = split(strip(code), '\n')
+                    for line in lines
+                        if !isempty(strip(line))
+                            eval(Meta.parse(line))
+                        end
+                    end
+                    push!(processed_code, code)
+                end
+            end
+        end
         
         # Split the code into lines and evaluate
         debug_print("Code: $oscar_code")
@@ -37,7 +74,12 @@ function execute_statement(oscar_code::String)
         end
         
         # Return the last evaluated expression
-        return eval(Meta.parse(lines[end]))
+        last_result = eval(Meta.parse(lines[end]))
+        
+        # Add the result to history
+        push!(CONFIG[:context][:history], ("assistant", string(last_result)))
+        
+        return last_result
     catch e
         error("Error executing Oscar code: $e\nCode: $oscar_code")
     end
