@@ -3,8 +3,24 @@ module OscarAICoder
 # __precompile__(false)
 
 using HTTP, JSON
+using Dates
 
-export process_statement, configure_default_backend, configure_dictionary_mode, configure_github_backend, execute_statement, execute_statement_with_format, debug_mode!, debug_mode, debug_print, training_mode!, training_mode, get_context
+# Clean up response text by removing markdown code block indicators
+function clean_response_text(text::String)
+    # Remove ```oscar and ``` markers
+    text = replace(text, r"```(?:oscar)?\s*" => "")
+    # Remove any remaining backticks
+    text = replace(text, r"`" => "")
+    # Trim whitespace
+    return strip(text)
+end
+
+# Simple timestamp function using Dates standard library
+function current_timestamp()
+    return Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
+end
+
+export process_statement, configure_default_backend, configure_dictionary_mode, configure_github_backend, execute_statement, execute_statement_with_format, debug_mode!, debug_mode, debug_print, training_mode!, training_mode, get_context, save_context, load_context, set_save_dir
 
 include("seed_dictionary.jl")  # Includes SEED_DICTIONARY
 using .SeedDictionary: SEED_DICTIONARY
@@ -103,8 +119,133 @@ const CONFIG = Dict{Symbol, Any}(
     :context => Dict(
         :history => [],  # Store conversation history
         :max_history => 5  # Maximum number of previous interactions to keep
-    )
+    ),
+    :save_dir => joinpath(homedir(), "OscarAICoder_sessions")  # Default save directory
 )
+
+"""
+    set_save_dir(dir::String)
+
+Set the directory where session files will be saved.
+
+# Arguments
+- `dir::String`: Path to the directory where session files should be saved
+"""
+function set_save_dir(dir::String)
+    # Create the directory if it doesn't exist
+    mkpath(dir)
+    CONFIG[:save_dir] = abspath(dir)
+    return CONFIG[:save_dir]
+end
+
+"""
+    save_context([filename::String])
+
+Save the current context to a file.
+
+# Arguments
+- `filename::String`: (optional) Name of the file to save to. If not provided,
+  a filename will be generated using the current timestamp.
+
+# Returns
+- `String`: The full path to the saved file
+"""
+function save_context(filename::Union{String,Nothing}=nothing)
+    # Ensure save directory exists
+    mkpath(CONFIG[:save_dir])
+    
+    # Generate filename if not provided
+    if filename === nothing
+        timestamp = current_timestamp()
+        filename = "OscarAICoder_session_$(timestamp).json"
+    end
+    
+    # Ensure .json extension
+    if !endswith(lowercase(filename), ".json")
+        filename = "$filename.json"
+    end
+    
+    # Create full path
+    filepath = abspath(joinpath(CONFIG[:save_dir], filename))
+    
+    # Prepare data to save
+    save_data = Dict(
+        :metadata => Dict(
+            :saved_at => current_timestamp(),
+            :version => "1.0",
+            :config => Dict(
+                :max_history => CONFIG[:context][:max_history]
+            )
+        ),
+        :history => CONFIG[:context][:history]
+    )
+    
+    # Save to file
+    open(filepath, "w") do f
+        JSON.print(f, save_data, 2)
+    end
+    
+    return filepath
+end
+
+"""
+    load_context(filename::String; clear_current::Bool=true)
+
+Load context from a file.
+
+# Arguments
+- `filename::String`: Name of the file to load from
+- `clear_current::Bool`: If true (default), clears current context before loading
+
+# Returns
+- `Dict`: The loaded context
+"""
+function load_context(filename::String; clear_current::Bool=true)
+    # Create full path
+    if !isabspath(filename)
+        filename = joinpath(CONFIG[:save_dir], filename)
+    end
+    
+    # Read and parse the file
+    data = JSON.parsefile(filename)
+    
+    # Clear current context if requested
+    if clear_current
+        CONFIG[:context][:history] = []
+    end
+    
+    # Helper function to safely get a value with either symbol or string key
+    safe_get(dict, key) = haskey(dict, key) ? dict[key] : get(dict, string(key), nothing)
+    
+    # Get history from data
+    history = safe_get(data, :history)
+    if history === nothing
+        return CONFIG[:context]  # No history found in file
+    end
+    
+    # Append loaded history
+    for item in history
+        if isa(item, Vector) && length(item) >= 2
+            # Handle both ["role", "message"] and ["user", "message"] formats
+            role = string(item[1])
+            message = string(item[2])
+            push!(CONFIG[:context][:history], (role, message))
+        end
+    end
+    
+    # Update max_history if present in saved data
+    if haskey(data, "metadata") || haskey(data, :metadata)
+        metadata = safe_get(data, :metadata)
+        if haskey(metadata, "config") || haskey(metadata, :config)
+            config = safe_get(metadata, :config)
+            if haskey(config, "max_history") || haskey(config, :max_history)
+                CONFIG[:context][:max_history] = safe_get(config, :max_history)
+            end
+        end
+    end
+    
+    return CONFIG[:context]
+end
 
 # Debug system
 const LOCAL_DEBUG = false  # Enable debug printing for Local module
@@ -277,7 +418,8 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
         if CONFIG[:dictionary_mode] != :disabled
             if has_in_dictionary(statement)
                 response = get_from_dictionary(statement)
-                push!(CONFIG[:context][:history], ("assistant", response))
+                clean_response = clean_response_text(response)
+                push!(CONFIG[:context][:history], ("assistant", clean_response))
                 return response
             end
         end
@@ -387,7 +529,8 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
             end
 
             # Add response to history
-            push!(CONFIG[:context][:history], ("assistant", response_text))
+            clean_response = clean_response_text(response_text)
+            push!(CONFIG[:context][:history], ("assistant", clean_response))
 
             # Clean the response to make it directly executable
             response_code = response_text
