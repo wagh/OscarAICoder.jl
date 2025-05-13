@@ -242,7 +242,7 @@ configure_dictionary_mode(:disabled)
 
 \subsection{Context Management}
 
-OscarAICoder.jl maintains conversation context to help generate more accurate and consistent Oscar code:
+OscarAICoder.jl provides powerful context management features to help generate more accurate and consistent Oscar code. The system maintains conversation history and allows saving/loading of contexts to/from files.
 
 \subsubsection{Context History}
 
@@ -253,13 +253,43 @@ The context history is automatically managed:
     \item Automatically trims older interactions when history exceeds limit
 \end{itemize}
 
+\begin{lstlisting}
+# View current context
+using OscarAICoder
+get_context()
+\end{lstlisting}
+
+\subsubsection{Saving and Loading Contexts}
+
+You can save the current context to a file and load it later:
+
+\begin{lstlisting}
+# Save context to a file (uses timestamp for filename if none provided)
+save_path = save_context()
+
+# Save with a specific name
+save_context("my_workspace.json")
+
+
+# Load context from a file
+load_context("my_workspace.json")  # Clears current context by default
+load_context("my_workspace.json", clear_current=false)  # Keep current context
+\end{lstlisting}
+
+\subsubsection{Configuring Save Directory}
+
+By default, contexts are saved in \texttt{\textasciitilde/OscarAICoder\_sessions/}. You can change this:
+
+\begin{lstlisting}
+# Change the save directory
+set_save_dir("/path/to/save/directory")
+\end{lstlisting}
+
 \subsubsection{Clearing Context}
 
 You can clear the context at any time:
 
 \begin{lstlisting}
-using OscarAICoder
-
 # Clear context for fresh session
 process_statement("Define a polynomial ring R with variable x over QQ", clear_context=true)
 \end{lstlisting}

@@ -4,6 +4,11 @@ A Julia package that translates English mathematical statements into Oscar code 
 
 ## Features
 - `process_statement(statement::String; backend=:local)` — converts English math statements to Oscar code.
+- Context management functions:
+  - `get_context([pretty=true])` — get current conversation context
+  - `save_context([filename])` — save context to a file
+  - `load_context(filename; clear_current=true)` — load context from a file
+  - `set_save_dir(dir)` — set directory for saved contexts
 - Multiple backend options:
   - Local LLM (default): Connects to a local LLM server (e.g., Ollama)
   - Remote LLM: Connects to a remote Ollama server
@@ -92,6 +97,35 @@ configure_dictionary_mode(:disabled)
 ## Usage Examples
 
 ### Basic Usage
+
+#### Context Management
+
+```julia
+using OscarAICoder
+
+# Process statements with context
+process_statement("Define a polynomial ring R with variables x, y, z", clear_context=true)
+process_statement("Now define an ideal I = (x^2, y^2)")
+
+# View current context
+get_context()
+
+# Save context to a file (uses timestamp for filename if none provided)
+save_path = save_context()
+
+# Later, load the context back
+load_context(save_path)
+
+# Or load with a specific name
+save_context("my_workspace.json")
+load_context("my_workspace.json")
+
+# Change the save directory
+set_save_dir("/path/to/save/directory")
+```
+
+#### Basic Code Generation
+
 ```julia
 using OscarAICoder
 
