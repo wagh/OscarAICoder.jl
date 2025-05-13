@@ -4,7 +4,7 @@ module OscarAICoder
 
 using HTTP, JSON
 
-export process_statement, configure_default_backend, configure_dictionary_mode, configure_github_backend, execute_statement, execute_statement_with_format, debug_mode!, debug_mode, debug_print, training_mode!, training_mode
+export process_statement, configure_default_backend, configure_dictionary_mode, configure_github_backend, execute_statement, execute_statement_with_format, debug_mode!, debug_mode, debug_print, training_mode!, training_mode, get_context
 
 include("seed_dictionary.jl")  # Includes SEED_DICTIONARY
 using .SeedDictionary: SEED_DICTIONARY
@@ -12,6 +12,60 @@ include("backends/local.jl")
 include("backends/huggingface.jl")
 include("backends/github.jl")
 include("execute.jl")
+
+"""
+    get_context([pretty=true])
+
+Get the current conversation context including history and configuration.
+
+# Arguments
+- `pretty::Bool`: If true (default), returns a formatted string. If false, returns the raw Dict.
+
+# Returns
+- If `pretty=true`: A formatted string of the context (human-readable)
+- If `pretty=false`: A dictionary containing the current context with keys:
+  - `:history`: Array of previous interactions as (role, message) tuples
+  - `:max_history`: Maximum number of interactions to keep
+"""
+function get_context(pretty::Bool=true)
+    ctx = deepcopy(CONFIG[:context])
+    if !pretty
+        return ctx
+    end
+    
+    # Print directly to stdout
+    println("Context (max_history: $(ctx[:max_history]))")
+    println(repeat("-", 50))
+    
+    # Group interactions by call number (each user-assistant pair is one call)
+    call_num = 1
+    i = 1
+    while i <= length(ctx[:history])
+        # Get user message if it exists
+        if i <= length(ctx[:history]) && ctx[:history][i][1] == "user"
+            println("[", call_num, "] ", "User:")
+            for line in split(ctx[:history][i][2], '\n')
+                println("    ", line)
+            end
+            i += 1
+        end
+        
+        # Get assistant response if it exists
+        if i <= length(ctx[:history]) && ctx[:history][i][1] == "assistant"
+            println("[", call_num, "] ", "Assistant:")
+            for line in split(ctx[:history][i][2], '\n')
+                println("    ", line)
+            end
+            i += 1
+        end
+        
+        call_num += 1
+        println()  # Add empty line between interactions
+    end
+    
+    # Return nothing since we're printing directly
+    return nothing
+end
 
 # Configuration
 const CONFIG = Dict{Symbol, Any}(
