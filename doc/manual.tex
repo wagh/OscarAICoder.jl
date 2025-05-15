@@ -3,26 +3,60 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{graphicx}
+\usepackage{imakeidx}
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{color}
 \usepackage{url}
 \usepackage{fancyhdr}
 \usepackage{geometry}
-\usepackage{makeidx}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{array}
 
-\geometry{left=2cm,right=2cm,top=2cm,bottom=2cm}
+% Index configuration
+\makeindex[columns=1, title=Index, intoc]
+\indexsetup{level=\section*,toclevel=section}
+\makeatletter
+\patchcmd{\theindex}{\section*{\indexname}}{\section*{\indexname}\indexmarkup}{}{}
+\makeatother
 
-% Set headheight for fancyhdr
+% Custom index entries with proper formatting
+\newcommand{\indexentry}[2]{\index{#1@\texttt{#1} #2}}
+\newcommand{\indexfunc}[1]{\indexentry{#1}{function}}
+\newcommand{\indexparam}[1]{\indexentry{#1}{parameter}}
+\newcommand{\indexopt}[1]{\indexentry{#1}{option}}
+\newcommand{\indexconst}[1]{\indexentry{#1}{constant}}
+\newcommand{\indexmod}[1]{\indexentry{#1}{module}}
+
+% Command for code in text
+\newcommand{\code}[1]{\texttt{#1}}
+
+% Command for important notes
+\newcommand{\important}[1]{\textbf{#1}}
+
+% Command for configuration options
+\newcommand{\configopt}[1]{\texttt{#1}}
+
+% Command for function signatures
+\newcommand{\func}[1]{\texttt{#1}}
+
+% Command for module names
+\newcommand{\modname}[1]{\texttt{#1}}
+
+% Page layout
+\geometry{left=2cm,right=2cm,top=2.5cm,bottom=2.5cm}
 \setlength{\headheight}{14pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
 
+% Headers and footers
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\leftmark}
 \fancyhead[R]{\thepage}
 \fancyfoot[C]{\thepage}
-\renewcommand{\headrulewidth}{0.4pt}
-\renewcommand{\footrulewidth}{0.4pt}
 
 % Define Julia language for listings
 \lstdefinelanguage{Julia}{
@@ -33,499 +67,371 @@
     morestring=[m]{'}{'}
 }
 
+% Custom colors
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
 \definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{lightgray}{rgb}{0.95,0.95,0.95}
 
+% Listings style
 \lstdefinestyle{mystyle}{
-    backgroundcolor=\color{backcolour},   
+    backgroundcolor=\color{backcolour},
     commentstyle=\color{codegreen},
     keywordstyle=\color{magenta},
     numberstyle=\tiny\color{codegray},
     stringstyle=\color{codepurple},
     basicstyle=\footnotesize\ttfamily,
-    breakatwhitespace=false,         
-    breaklines=true,                 
-    captionpos=b,                    
-    keepspaces=true,                 
-    numbers=left,                    
-    numbersep=5pt,                   
-    showspaces=false,                
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
     showstringspaces=false,
-    showtabs=false,                  
+    showtabs=false,
     tabsize=2,
-    language=Julia
+    language=Julia,
+    frame=single,
+    rulecolor=\color{gray!30}
 }
 
 \lstset{style=mystyle}
 
-\title{\textbf{OscarAICoder.jl}}
-\author{Vinay Wagh}
+% Custom commands
+% Define custom commands if they don't already exist
+\providecommand{\code}[1]{\texttt{\color{blue!70!black}#1}}
+\providecommand{\important}[1]{\textbf{\color{red!70!black}#1}}
+
+% Title and author
+\title{OscarAICoder.jl Documentation}
+\author{Author Name}
 \date{\today}
 
 \begin{document}
-
 \maketitle
+\thispagestyle{empty}
 
 \begin{abstract}
-OscarAICoder.jl is a Julia package that translates English mathematical statements into Oscar code using various LLM backends. It supports multiple backend configurations including local, remote, GitHub-hosted, and HuggingFace models.
+This document provides comprehensive documentation for the \modname{OscarAICoder.jl} package, a powerful tool for generating Oscar code from natural language mathematical statements. The package supports multiple backends, context management, and various configuration options to customize the code generation process.
 \end{abstract}
 
-\tableofcontents
-
 \section{Introduction}
+\label{sec:introduction}
 
-OscarAICoder.jl is a Julia package designed to bridge the gap between natural language mathematical statements and executable Oscar code. It leverages modern LLM (Large Language Model) technology to understand and translate mathematical concepts expressed in English into equivalent Oscar code.
+\modname{OscarAICoder.jl} is a Julia package that provides an interface to interact with large language models (LLMs) for generating Oscar code from natural language mathematical statements. The package is designed to be flexible, supporting multiple backends and configuration options to suit various use cases.
+
+\subsection{Features}
+\begin{itemize}
+    \item Multiple backend support (local Ollama, Hugging Face, GitHub)
+    \item Context-aware code generation
+    \item Dictionary-based statement processing
+    \item Debug and training modes
+    \item Session management and persistence
+    \item Customizable configuration options
+\end{itemize}
+
+\subsection{Overview}
+The package consists of several modules that work together to provide a seamless experience for generating Oscar code. The main components are:
+
+\begin{description}
+    \item[\modname{OscarAICoder.jl}] Main module that provides the user-facing API
+    \item[\modname{Backends}] Handles communication with different LLM backends
+    \item[\modname{SeedDictionary}] Contains predefined statement-to-code mappings
+    \item[\modname{Execute}] Manages code execution and result formatting
+\end{description}
 
 \section{Installation}
+\label{sec:installation}
 
-\subsection{Basic Installation}
-To install OscarAICoder.jl, use the Julia package manager:
+To install \modname{OscarAICoder.jl}, use the Julia package manager:
 
 \begin{lstlisting}
 using Pkg
 Pkg.add("OscarAICoder")
 \end{lstlisting}
 
-\subsection{LLM Backend Setup}
-
-\subsubsection{Local LLM Server Setup (Recommended)}
-
-1. Install Ollama:
-\begin{lstlisting}[language=bash]
-# Download the setup script
-wget https://raw.githubusercontent.com/wagh/OscarAICoder.jl/main/setup_ollama.sh
-chmod +x setup_ollama.sh
-
-# Run the setup script
-./setup_ollama.sh
-\end{lstlisting}
-
-The setup script will:
-\begin{itemize}
-    \item Check if Ollama is installed
-    \item Install Ollama if needed
-    \item Start the Ollama server
-    \item Pull the required model (qwen2.5-coder)
-\end{itemize}
-
-2. After installation, the local backend will be ready to use:
-\begin{lstlisting}
-using OscarAICoder
-oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers.")
-\end{lstlisting}
-
-\subsubsection{Remote Ollama Server Setup}
-
-1. Ensure you have access to a remote Ollama server
-2. Configure the remote backend:
-\begin{lstlisting}
-using OscarAICoder
-configure_default_backend(:remote, Dict(
-    :url => "http://your-server:11434"
-))
-\end{lstlisting}
-
-\subsubsection{GitHub-hosted LLM Setup}
-
-1. Ensure you have a GitHub account and access to the model repository
-2. Configure the GitHub backend:
-\begin{lstlisting}
-using OscarAICoder
-configure_default_backend(:github, Dict(
-    :repo => "your-username/llm-model",
-    :model => "math_model.bin",
-    :token => ENV["GITHUB_TOKEN"]
-))
-\end{lstlisting}
-
-\subsubsection{Hugging Face Setup}
-
-1. Get an API key from Hugging Face (https://huggingface.co/settings/tokens)
-2. Configure the Hugging Face backend:
-\begin{lstlisting}
-using OscarAICoder
-configure_default_backend(:huggingface, Dict(
-    :api_key => "your_api_key"
-))
-\end{lstlisting}
-
 \section{Basic Usage}
+\label{sec:basic_usage}
 
-The primary function in OscarAICoder.jl is \texttt{process\_statement}, which takes an English mathematical statement and returns the corresponding Oscar code.
+\subsection{Processing Statements}
 
-\subsection{Mode Configuration}
+The main function to process natural language statements is \func{process\_statement}:
 
-OscarAICoder.jl supports different modes of operation:
-
-\subsubsection{Training Mode}
-
-Training mode uses a comprehensive template to guide the LLM in generating Oscar code:
-
-\begin{lstlisting}
+\begin{lstlisting}[language=Julia]
 using OscarAICoder
 
-# Enable training mode
-training_mode!(true)
-
-# Process statement in training mode
-process_statement("Define a polynomial ring R with variable x over QQ")
-# Uses full template with detailed instructions
-\end{lstlisting}
-
-\subsubsection{Context Mode}
-
-Context mode maintains conversation history to help generate more accurate and consistent Oscar code:
-
-\begin{lstlisting}
-using OscarAICoder
-
-# First statement in context mode
-process_statement("Define a polynomial ring R with variable x over QQ")
-# Uses normal prompt template
-
-# Subsequent statement
-process_statement("Define the polynomial f = x^2 + 1")
-# Uses conversation history with clear instructions
+# Process a simple statement
+code = process_statement("Find the roots of x^2 - 5x + 6")
 \end{lstlisting}
 
 \subsection{Backend Configuration}
 
-OscarAICoder.jl supports multiple backends for generating Oscar code:
+\modname{OscarAICoder.jl} supports multiple backends for processing statements. The default backend can be configured using:
 
-\subsubsection{Local Backend}
+\begin{lstlisting}[language=Julia]
+# Configure the default backend
+configure_default_backend(:local)  # Options: :local, :huggingface, :github
 
-Configure the local backend with:
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Configure local backend
-configure_default_backend(
-    :local,
+# Configure backend-specific settings
+configure_local_backend(
     url="http://localhost:11434/api/generate",
     model="qwen2.5-coder"
 )
-\end{lstlisting}
 
-\subsubsection{HuggingFace Backend}
-
-Configure the HuggingFace backend with:
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Configure HuggingFace backend
-configure_github_backend(
+configure_huggingface_backend(
     api_key="your_api_key",
-    model="your_model_name"
+    model="gpt2"
 )
-\end{lstlisting}
 
-\subsection{Dictionary Mode}
-
-The package includes a built-in dictionary of common mathematical statements. You can configure how it's used:
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Try dictionary first, then LLM
-configure_dictionary_mode(:priority)
-
-# Try LLM first, then dictionary
-configure_dictionary_mode(:llm_first)
-
-# Disable dictionary entirely
-configure_dictionary_mode(:disabled)
+configure_github_backend(
+    repo="username/repo",
+    token="your_github_token"
+)
 \end{lstlisting}
 
 \subsection{Context Management}
 
-OscarAICoder.jl provides powerful context management features to help generate more accurate and consistent Oscar code. The system maintains conversation history and allows saving/loading of contexts to/from files.
+The package maintains conversation context to improve code generation. You can manage the context using:
 
-\subsubsection{Context History}
+\begin{lstlisting}[language=Julia]
+# Get the current context
+context = get_context()
 
-The context history is automatically managed:
-\begin{itemize}
-    \item Stores conversation history as tuples of (role, text)
-    \item Maintains a maximum history length (default: 5 interactions)
-    \item Automatically trims older interactions when history exceeds limit
-\end{itemize}
-
-\begin{lstlisting}
-# View current context
-using OscarAICoder
-get_context()
+# Clear the context
+clear_context!()
 \end{lstlisting}
 
-\subsubsection{Saving and Loading Contexts}
-
-You can save the current context to a file and load it later:
-
-\begin{lstlisting}
-# Save context to a file (uses timestamp for filename if none provided)
-save_path = save_context()
-
-# Save with a specific name
-save_context("my_workspace.json")
-
-
-# Load context from a file
-load_context("my_workspace.json")  # Clears current context by default
-load_context("my_workspace.json", clear_current=false)  # Keep current context
-\end{lstlisting}
-
-\subsubsection{Configuring Save Directory}
-
-By default, contexts are saved in \texttt{\textasciitilde/OscarAICoder\_sessions/}. You can change this:
-
-\begin{lstlisting}
-# Change the save directory
-set_save_dir("/path/to/save/directory")
-\end{lstlisting}
-
-\subsubsection{Clearing Context}
-
-You can clear the context at any time:
-
-\begin{lstlisting}
-# Clear context for fresh session
-process_statement("Define a polynomial ring R with variable x over QQ", clear_context=true)
-\end{lstlisting}
-
-\subsection{Code Execution}
-
-Once you have Oscar code, you can execute it using:
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Generate Oscar code
-oscar_code = process_statement("Define a polynomial ring R with variable x over QQ")
-
-# Execute the code
-result = execute_statement(oscar_code)
-
-# Execute with specific output format
-result = execute_statement_with_format(oscar_code, output_format=:latex)
-\end{lstlisting}
-
-\subsection{Debugging}
-
-Enable debug mode to see detailed information about the processing:
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Enable debug mode
-debug_mode!(true)
-
-# Process statement with debug output
-process_statement("Define a polynomial ring R with variable x over QQ")
-\end{lstlisting}
+\section{Advanced Features}
+\label{sec:advanced-features}
 
 \subsection{Backend Configuration}
+\label{subsec:backend_config}
 
-OscarAICoder.jl supports multiple backends for generating Oscar code:
-
-\begin{enumerate}
-    \item \textbf{Local Backend}: Uses a local LLM server
-    \item \textbf{HuggingFace Backend}: Uses HuggingFace models
-    \item \textbf{GitHub Backend}: Uses GitHub-hosted models
-\end{enumerate}
+\modname{OscarAICoder.jl} supports multiple backends for processing statements. Each backend has its own configuration options:
 
 \subsubsection{Local Backend}
+The local backend connects to a locally running Ollama server.
 
-Configure the local backend with:
-
-\begin{lstlisting}
-using OscarAICoder
-
+\begin{lstlisting}[language=Julia]
 # Configure local backend
-configure_default_backend(
+configure_local_backend(
     url="http://localhost:11434/api/generate",
-    model="llama3.3"
+    model="qwen2.5-coder",
+    temperature=0.7,
+    max_tokens=256
 )
-
-# Process a statement
-statement = "Define a polynomial ring R with variables x0, x1, x2, and x3 over the rational numbers QQ."
-oscar_code = process_statement(statement)
 \end{lstlisting}
 
-\subsubsection{HuggingFace Backend}
+\subsubsection{Hugging Face Backend}
+The Hugging Face backend uses the Hugging Face Inference API.
 
-Configure the HuggingFace backend with:
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Configure HuggingFace backend
-configure_github_backend(
+\begin{lstlisting}[language=Julia]
+# Configure Hugging Face backend
+configure_huggingface_backend(
     api_key="your_api_key",
-    model="your_model_name"
+    model="gpt2",
+    endpoint="https://api-inference.huggingface.co/models"
 )
-
-# Process a statement
-statement = "Define an ideal I in R generated by the polynomials x0 and x1."
-oscar_code = process_statement(statement)
 \end{lstlisting}
 
-\section{Key Features}
+\subsubsection{GitHub Backend}
+The GitHub backend interacts with GitHub's API for code generation.
 
-\subsection{Polynomial Rings}
-
-OscarAICoder.jl can handle various polynomial ring operations:
-
-\begin{lstlisting}
-# Example: Define a polynomial ring
-statement = "Define a polynomial ring R with variables x0, x1, x2, and x3 over the rational numbers QQ."
-oscar_code = process_statement(statement)
-
-# Output:
-# R, (x0, x1, x2, x3) = polynomial_ring(QQ, ["x0", "x1", "x2", "x3"])
-\end{lstlisting}
-
-\subsection{Ideals}
-
-The package supports ideal operations including:
-
-\begin{itemize}
-    \item Ideal generation
-    \item Ideal intersection
-    \item Ideal product
-    \item Primary decomposition
-    \item Associated primes
-\end{itemize}
-
-\begin{lstlisting}
-# Example: Ideal operations
-statement = "Compute the intersection of the ideals (x, y) and (y, z) in QQ[x, y, z] using Groebner bases."
-oscar_code = process_statement(statement)
-
-# Output:
-# R, x, y, z = polynomial_ring(QQ, ["x", "y", "z"], order="lex")
-# I = ideal(R(x), R(y))
-# J = ideal(R(y), R(z))
-# t = R.gens()[0] * 0 + 1  # A dummy variable
-# S, t_var = R.add_variable("t")
-# I_lifted = S.ideal(S(x), S(y))
-# J_lifted = S.ideal(S(y), S(z))
-# IK = I_lifted * S.ideal(S(1 - t)) + J_lifted * S.ideal(S(t))
-# gb_IK = groebner_basis(IK, eliminate=[t_var])
-# intersection_ideal = gb_IK.contract(R)
-# print(intersection_ideal)
-\end{lstlisting}
-
-\subsection{Groebner Bases}
-
-Groebner basis computations are supported with various orderings:
-
-\begin{lstlisting}
-# Example: Groebner basis computation
-statement = "Compute the Groebner basis of the ideal (x^2 + y^2 - 1, x - y) in QQ[x, y] with respect to the lexicographic order."
-oscar_code = process_statement(statement)
-
-# Output:
-# R, x, y = polynomial_ring(QQ, ["x", "y"], order="lex")
-# I = ideal(R(x^2 + y^2 - 1), R(x - y))
-# gb = groebner_basis(I)
-# print(gb)
-\end{lstlisting}
-
-\subsection{Matrix Operations}
-
-The package can handle matrix operations in polynomial rings:
-
-\begin{lstlisting}
-# Example: Matrix construction
-statement = "Construct a matrix A with elements from R based on given polynomial expressions."
-oscar_code = process_statement(statement)
-
-# Output:
-# A = matrix(R, [[1, x0, x1, 0, 0], [1, 0, 0, x2, x3]])
-\end{lstlisting}
-
-\section{Training Mode}
-
-OscarAICoder.jl includes a training mode for improving its dictionary:
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Enable training mode
-dict_mode = configure_dictionary_mode(true)
-
-# Add new entries to the dictionary
-add_to_dictionary(
-    "Define a new mathematical concept",
-    "corresponding_oscar_code"
+\begin{lstlisting}[language=Julia]
+# Configure GitHub backend
+configure_github_backend(
+    repo="username/repo",
+    token="your_github_token",
+    branch="main",
+    model="llama2"
 )
-
-# Check if a statement exists in the dictionary
-has_in_dictionary("statement_to_check")
 \end{lstlisting}
 
-\section{Debugging}
+\subsection{Dictionary Mode}
+\label{subsec:dictionary_mode}
 
-The package includes debugging utilities:
+The package includes a dictionary-based approach for common mathematical operations. You can configure the dictionary mode using:
 
-\begin{lstlisting}
-using OscarAICoder
+\begin{lstlisting}[language=Julia]
+# Configure dictionary mode
+configure_dictionary_mode(:priority)  # Options: :priority, :only, :disabled
+\end{lstlisting}
 
-# Enable debug mode
+\begin{description}
+    \item[\code{:priority}] (default) Check dictionary first, then use LLM
+    \item[\code{:only}] Only use dictionary, don't use LLM
+    \item[\code{:disabled}] Always use LLM, ignore dictionary
+\end{description}
+
+\subsection{Debug and Training Modes}
+
+\begin{lstlisting}[language=Julia]
+# Enable debug mode for detailed logging
 debug_mode!(true)
 
-# Print debug messages
-debug_print("Debug information")
+# Enable training mode for more detailed prompts
+training_mode!(true)
 \end{lstlisting}
 
 \section{Examples}
+\label{sec:examples}
 
-\subsection{Polynomial Rings}
+Here are some examples of using \modname{OscarAICoder.jl} for various mathematical tasks:
 
-\begin{lstlisting}
-statement = "Define a polynomial ring R with variables x0, x1, x2, and x3 over the rational numbers QQ."
-oscar_code = process_statement(statement)
+\subsection{Basic Algebra}
+
+\begin{lstlisting}[language=Julia]
+# Solve a quadratic equation
+code = process_statement("Find the roots of x^2 - 5x + 6")
+println(code)
+
+# Expected output:
+# R, x = PolynomialRing(QQ, "x")
+# f = x^2 - 5x + 6
+# roots(f)
 \end{lstlisting}
 
-\subsection{Ideals}
+\subsection{Linear Algebra}
 
-\begin{lstlisting}
-statement = "Define an ideal I in R generated by the polynomials x0 and x1."
-oscar_code = process_statement(statement)
+\begin{lstlisting}[language=Julia]
+# Compute eigenvalues of a matrix
+code = process_statement("Find the eigenvalues of matrix [1 2; 3 4]")
+println(code)
+
+# Expected output:
+# M = matrix(QQ, [1 2; 3 4])
+# eigvals(M)
 \end{lstlisting}
 
-\subsection{Matrix Operations}
+\subsection{Number Theory}
 
-\begin{lstlisting}
-statement = "Construct a matrix A with elements from R based on given polynomial expressions."
-oscar_code = process_statement(statement)
+\begin{lstlisting}[language=Julia]
+# Check if a number is prime
+code = process_statement("Check if 17 is a prime number")
+println(code)
+
+# Expected output:
+# is_prime(17)  # Returns true
+\end{lstlisting}
+
+\section{Troubleshooting}
+\label{sec:troubleshooting}
+
+\subsection{Common Issues}
+
+\begin{description}
+    \item[\important{LLM not responding}] Check if the LLM server is running and accessible. For local setups, ensure Ollama is properly installed and running.
+    
+    \item[\important{Context not maintained}] Ensure you're not clearing the context unintentionally and that the conversation history length is sufficient.
+\end{description}
+
+\subsection{Debugging}
+
+You can enable debug mode to get more detailed information about the code generation process:
+
+\begin{lstlisting}[language=Julia]
+# Enable debug mode
+debug_mode!(true)
+
+# Process a statement to see debug output
+process_statement("your statement")
 \end{lstlisting}
 
 \section{API Reference}
+\label{sec:api_reference}
 
 \subsection{Main Functions}
 
 \begin{description}
-    \item[\texttt{process\_statement}] Main function to convert English statements to Oscar code
-    \item[\texttt{configure\_default\_backend}] Configure the default LLM backend
-    \item[\texttt{configure\_dictionary\_mode}] Configure dictionary usage mode
-    \item[\texttt{configure\_github\_backend}] Configure GitHub-hosted model backend
-    \item[\texttt{execute\_statement}] Execute generated Oscar code
-    \item[\texttt{debug\_mode!}] Enable/disable debug mode
-    \item[\texttt{debug\_print}] Print debug messages
+    \item[\func{process\_statement(statement::String; kwargs...)}] \hfill \\
+    Processes a natural language mathematical statement and returns the corresponding Oscar code.
+    \indexfunc{process\_statement}
+    
+    \item[\func{configure\_default\_backend(backend::Symbol; kwargs...)}] \hfill \\
+    Configures the default LLM backend with the specified parameters.
+    \indexfunc{configure\_default\_backend}
+    
+    \item[\func{configure\_dictionary\_mode(mode::Symbol)}] \hfill \\
+    Configures how the dictionary is used when processing statements.
+    \indexfunc{configure\_dictionary\_mode}
+    
+    \item[\func{training\_mode!(enabled::Bool)}] \hfill \\
+    Enables or disables training mode, which provides more detailed prompts to the LLM.
+    \indexfunc{training\_mode!}
 \end{description}
 
-\subsection{Dictionary Functions}
+\subsection{Context Management}
 
 \begin{description}
-    \item[\texttt{add\_to\_dictionary}] Add new entries to the dictionary
-    \item[\texttt{has\_in\_dictionary}] Check if a statement exists in the dictionary
-    \item[\texttt{get\_from\_dictionary}] Retrieve Oscar code for a statement
+    \item[\func{get\_context()}] \hfill \\
+    Returns the current conversation context.
+    \indexfunc{get\_context}
+    
+    \item[\func{clear\_context!()}] \hfill \\
+    Clears the current conversation context.
+    \indexfunc{clear\_context!}
+    
+    \item[\func{save\_context(filename::String="")}] \hfill \\
+    Saves the current context to a file.
+    \indexfunc{save\_context}
+    
+    \item[\func{load\_context(filename::String; clear\_current::Bool=true)}] \hfill \\
+    Loads a context from a file.
+    \indexfunc{load\_context}
+    
+    \item[\func{set\_save\_dir(dir::String)}] \hfill \\
+    Sets the directory where session files will be saved.
+    \indexfunc{set\_save\_dir}
+\end{description}
+
+\subsection{Backend Functions}
+
+\begin{description}
+    \item[\func{configure\_local\_backend(;url, model, temperature, max\_tokens)}] \hfill \\
+    Configures the local Ollama backend.
+    \indexfunc{configure\_local\_backend}
+    
+    \item[\func{configure\_huggingface\_backend(;api\_key, model, endpoint)}] \hfill \\
+    Configures the Hugging Face backend.
+    \indexfunc{configure\_huggingface\_backend}
+    
+    \item[\func{configure\_github\_backend(;repo, token, branch, model)}] \hfill \\
+    Configures the GitHub backend.
+    \indexfunc{configure\_github\_backend}
+\end{description}
+
+\subsection{Debugging Functions}
+
+\begin{description}
+    \item[\func{debug\_mode!(state::Bool)}] \hfill \\
+    Enables or disables debug mode for detailed logging.
+    \indexfunc{debug\_mode!}
+    
+    \item[\func{debug\_mode()}] \hfill \\
+    Returns the current debug mode state.
+    \indexfunc{debug\_mode}
+    
+    \item[\func{debug\_print(msg::String; prefix="[DEBUG]"}] \hfill \\
+    Prints a debug message if debug mode is enabled.
+    \indexfunc{debug\_print}
+\end{description}
+
+\subsection{Execution Functions}
+
+\begin{description}
+    \item[\func{execute\_statement(oscar\_code::String; clear\_context=false)}] \hfill \\
+    Executes Oscar code and returns the result.
+    \indexfunc{execute\_statement}
+    
+    \item[\func{execute\_statement\_with\_format(oscar\_code::String; output\_format=:string)}] \hfill \\
+    Executes Oscar code and returns the result in the specified format.
+    \indexfunc{execute\_statement\_with\_format}
 \end{description}
 
 \section{Best Practices}
+\label{sec:best_practices}
 
 \begin{itemize}
     \item Always start with dictionary mode enabled for common operations
@@ -534,167 +440,8 @@ oscar_code = process_statement(statement)
     \item Regularly update the dictionary with new mathematical patterns
 \end{itemize}
 
-\section{Troubleshooting}
-
-\begin{itemize}
-    \item If LLM responses are inconsistent, try different backends
-    \item If dictionary lookups fail, check if the statement needs to be more specific
-    \item If code execution fails, verify the generated Oscar code syntax
-\end{itemize}
-
-\end{document}
-configure_dictionary_mode(:priority)
-
-# Use only the dictionary
-configure_dictionary_mode(:only)
-
-# Never use dictionary
-configure_dictionary_mode(:disabled)
-\end{lstlisting}
-
-\section{Backend Configuration}
-
-OscarAICoder supports multiple LLM backends. The default backend can be configured using \texttt{configure\_default\_backend}.
-
-\subsection{Local Backend}
-
-The local backend connects to a locally running LLM server (e.g., Ollama):
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Configure local backend
-configure_default_backend(:local)
-
-# Process a statement
-oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
-\end{lstlisting}
-
-\subsection{Remote Backend}
-
-The remote backend connects to a remote LLM server:
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Configure remote backend
-configure_default_backend(:remote, url="http://server01.mydomain.net:11434")
-
-# Process a statement
-oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
-\end{lstlisting}
-
-\subsection{GitHub Backend}
-
-The GitHub backend uses models hosted in GitHub repositories:
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Configure GitHub backend
-configure_github_backend(
-    repo="username/repo",
-    token="github_token",
-    model="llama2"
-)
-
-# Process a statement
-oscar_code = process_statement("Find the roots of x^2 - 5x + 6 = 0")
-\end{lstlisting}
-
-\section{Examples}
-
-\subsection{Basic Algebra}
-
-\subsubsection{Polynomial Factorization}
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Configure dictionary mode
-configure_dictionary_mode(:priority)
-
-# Process statement
-oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers")
-\end{lstlisting}
-
-\subsection{Commutative Algebra}
-
-\subsubsection{Ideal Operations}
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Configure GitHub backend
-configure_github_backend(
-    repo="username/repo",
-    token="github_token",
-    model="llama2"
-)
-
-# Process statement
-oscar_code = process_statement("Compute the intersection of ideals (x,y) and (y,z) in Q[x,y,z]")
-\end{lstlisting}
-
-\subsection{Algebraic Geometry}
-
-\subsubsection{Variety Computation}
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Configure dictionary mode
-configure_dictionary_mode(:priority)
-
-# Process statement
-oscar_code = process_statement("Compute the variety defined by x^2 + y^2 - 1 in Q[x,y]")
-\end{lstlisting}
-
-\subsection{Calculus}
-
-\subsubsection{Integration}
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Configure local backend
-configure_default_backend(:local)
-
-# Process statement
-oscar_code = process_statement("Integrate x^2 from 0 to 1")
-\end{lstlisting}
-
-\subsection{Linear Algebra}
-
-\subsubsection{Matrix Operations}
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Configure dictionary mode
-configure_dictionary_mode(:priority)
-
-# Process statement
-oscar_code = process_statement("Compute the determinant of matrix [[1,2],[3,4]]")
-\end{lstlisting}
-
-\section{Advanced Features}
-
-\subsection{Offline Mode}
-
-You can enable offline mode to use only the local dictionary:
-
-\begin{lstlisting}
-using OscarAICoder
-
-# Enable offline mode
-configure_offline_mode(true)
-
-# Only dictionary entries will be used
-oscar_code = process_statement("Compute the determinant of a 2x2 matrix")
-\end{lstlisting}
-
 \section{Testing}
+\label{sec:testing}
 
 The package includes a comprehensive test suite organized by mathematical area:
 
@@ -712,14 +459,33 @@ make test
 \end{lstlisting}
 
 \section{Contributing}
+\label{sec:contributing}
+\index{Contributing}
 
 Contributions to OscarAICoder.jl are welcome! Please see the \texttt{CONTRIBUTING.md} file for guidelines.
 
+\section*{Acknowledgements}
+\label{sec:acknowledgements}
+\index{Acknowledgements}
+
+We would like to express our gratitude to the following individuals and organizations for their contributions and support:
+
+\begin{itemize}
+    \item The OSCAR development team for creating and maintaining the OSCAR computer algebra system
+    \item The Julia community for their support and contributions
+    \item All contributors who have helped improve OscarAICoder.jl through bug reports, feature requests, and code contributions
+    \item The developers of the various LLM backends that make this package possible
+\end{itemize}
+
 \section{License}
+\label{sec:license}
+\index{License}
 
 OscarAICoder.jl is licensed under the MIT License.
 
+\clearpage
+\section*{Index}\addcontentsline{toc}{section}{Index}
+\printindex
+
 \end{document}
-
-
 

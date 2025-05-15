@@ -44,6 +44,10 @@ manual.pdf
 *.synctex.gz
 *.fdb_latexmk
 *.fls
+*.idx
+*.ilg
+*.ind
+
 
 # Test output
 doc/tst/*.out
