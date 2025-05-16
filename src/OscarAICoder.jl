@@ -398,14 +398,17 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
 
         # Check if this is the first statement in context mode
         is_first_statement = isempty(CONFIG[:context][:history])
+        debug_print("Context state BEFORE adding user entry: $(CONFIG[:context][:history])")
 
         # Add current statement to history
         push!(CONFIG[:context][:history], ("user", statement))
+        debug_print("Context state AFTER adding user entry: $(CONFIG[:context][:history])")
         
         # Keep only last N interactions
         if length(CONFIG[:context][:history]) > CONFIG[:context][:max_history]
             CONFIG[:context][:history] = CONFIG[:context][:history][end-CONFIG[:context][:max_history]+1:end]
         end
+        debug_print("Context state AFTER truncating history: $(CONFIG[:context][:history])")
 
         # Store the first statement flag in CONFIG
         CONFIG[:context][:is_first_statement] = is_first_statement
@@ -566,9 +569,11 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
                 lines = split(strip(response_code), '\n')
                 
                 # Validate each line
+                debug_print("Validating code lines")
                 for line in lines
                     if !isempty(strip(line))
                         parsed_line = Meta.parse(line)
+                        debug_print("Parsed line: $line -> $parsed_line")
                         if !isa(parsed_line, Expr)
                             error("Generated code contains invalid expression: $line")
                         end
