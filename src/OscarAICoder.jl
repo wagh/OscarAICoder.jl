@@ -12,6 +12,123 @@ include("backends/local.jl")
 include("backends/huggingface.jl")
 include("backends/github.jl")
 include("execute.jl")
+include("OscarHistory.jl")
+
+using .OscarHistory  # The '.' indicates a relative local module
+
+# Configuration
+
+"""
+    clear_context!()
+
+Clear the entire conversation context.
+"""
+function clear_context!()
+    CONFIG[:context][:history] = []
+    CONFIG[:context][:is_first_statement] = true
+    CONFIG[:context][:max_history] = 10  # Reset to default max history
+    debug_print("Cleared conversation context")
+end
+
+"""
+    delete_history_entry(index::Int)
+
+Delete a specific entry from the conversation history.
+
+# Arguments
+- `index::Int`: The index of the entry to delete (1-based)
+
+# Returns
+- `Tuple{String,String}`: The deleted entry (role, content)
+
+# Notes
+- Cannot delete entries that would break the conversation flow
+- Returns nothing if operation is successful
+- Throws error if index is invalid or if deletion would break conversation flow
+"""
+function delete_history_entry(index::Int)
+    history = CONFIG[:context][:history]
+    
+    debug_print("Deleting entry at index: $index")
+    debug_print("Current history: $(CONFIG[:context][:history])")
+
+    # Do not allow deletion from an empty history
+    if length(history) == 0
+        error("Cannot delete from an empty history")
+    end
+
+    # Validate index
+    if index < 1 || index > length(history)
+        error("Invalid index: $index. Must be between 1 and $(length(history))")
+    end
+    
+    # Check if deletion would break conversation flow
+    if index == 1
+        error("Cannot delete the first entry as it may break the conversation context")
+    end
+    
+    # Create backup
+    backup = deepcopy(history)
+    
+    # Delete entry using splice!
+    deleted_entry = splice!(history, index)
+    debug_print("Deleted entry: $deleted_entry")
+    
+    # Update max_history if needed
+    if length(history) < CONFIG[:context][:max_history]
+        CONFIG[:context][:max_history] = length(history)
+    end
+    
+    return deleted_entry
+end
+
+"""
+    edit_history_entry(index::Int, new_role::String, new_content::String)
+
+Edit a specific entry in the conversation history.
+
+# Arguments
+- `index::Int`: The index of the entry to edit (1-based)
+- `new_role::String`: The new role ("user" or "assistant")
+- `new_content::String`: The new content for the entry
+
+# Returns
+- `Tuple{String,String}`: The original entry (role, content)
+
+# Notes
+- Cannot edit entries that would break the conversation flow
+- Returns nothing if operation is successful
+- Throws error if index is invalid or if edit would break conversation flow
+"""
+function edit_history_entry(index::Int, new_role::String, new_content::String)
+    history = CONFIG[:context][:history]
+    
+    # Validate index
+    if index < 1 || index > length(history)
+        error("Invalid index: $index. Must be between 1 and $(length(history))")
+    end
+    
+    # Validate role
+    if !(new_role in ["user", "assistant"])
+        error("Invalid role: $new_role. Must be either 'user' or 'assistant'")
+    end
+    
+    # Check if edit would break conversation flow
+    if index == 1 && new_role != history[1][1]
+        error("Cannot change the role of the first entry as it may break the conversation context")
+    end
+    
+    # Create backup
+    backup = deepcopy(history)
+    
+    # Get original entry
+    original = history[index]
+    
+    # Update entry
+    history[index] = (new_role, new_content)
+    
+    return original
+end
 
 # Configuration
 const CONFIG = Dict{Symbol, Any}(
@@ -44,6 +161,12 @@ const CONFIG = Dict{Symbol, Any}(
     ),
     :dictionary_mode => :priority,
     :offline_mode => false,
+    :save_dir => "contexts",
+    :context => Dict(
+        :history => [],
+        :is_first_statement => true,
+        :max_history => 10
+    ),
     :debug_mode => false,
     :training_mode => false
 )
@@ -191,6 +314,30 @@ function configure_github_backend(; kwargs...)
 end
 
 function process_statement(statement::String; backend=nothing, kwargs...)
+    if CONFIG[:offline_mode] && !has_in_dictionary(statement)
+        error("Statement not found in dictionary and offline mode is enabled")
+    end
+
+    # Add to history
+    push!(CONFIG[:context][:history], ("user", statement))
+    
+    # Set is_first_statement flag
+    CONFIG[:context][:is_first_statement] = length(CONFIG[:context][:history]) == 1
+    
+    # Enforce max history
+    if length(CONFIG[:context][:history]) > CONFIG[:context][:max_history]
+        # Keep the first entry and the last max_history-1 entries
+        CONFIG[:context][:history] = vcat(
+            CONFIG[:context][:history][1:1],  # Keep first entry
+            CONFIG[:context][:history][end-(CONFIG[:context][:max_history]-2):end]  # Keep last max_history-1 entries
+        )
+        debug_print("History truncated to max_history: $(CONFIG[:context][:max_history])")
+    end
+
+    return nothing
+end
+
+function process_statement_full(statement::String; backend=nothing, kwargs...)
     if CONFIG[:offline_mode] && !has_in_dictionary(statement)
         error("Statement not found in dictionary and offline mode is enabled")
     end
