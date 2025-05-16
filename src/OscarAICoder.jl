@@ -1,9 +1,263 @@
 module OscarAICoder
 
 # __precompile__(false)
+using HTTP, JSON, Dates
 
-using HTTP, JSON
-using Dates
+# Define the Utils submodule
+module Utils
+    export CONFIG, debug_print
+    
+    # Configuration dictionary
+    const CONFIG = Dict{Symbol,Any}(
+        :save_dir => "saved_contexts",
+        :context => Dict(
+            :history => [],
+            :max_history => 10
+        )
+    )
+    
+    # Debug printing function
+    function debug_print(msg::String)
+        get(CONFIG, :debug, false) && println("[DEBUG] $msg")
+        return nothing
+    end
+end
+
+# Define the OscarAICoder module
+module OscarAICoder
+    using Base.Meta
+    using ..Utils: CONFIG, debug_print
+    
+    # Store Oscar's exported symbols
+    const OSCAR_SYMBOLS = Set{Symbol}()
+    
+    # Oscar module reference
+    const OSCAR_MODULE = Ref{Module}()
+
+    # Whitelist of known valid identifiers
+    const WHITELISTED_SYMBOLS = Set{Symbol}(
+        # Get all exported symbols from Base
+        [sym for sym in names(Base, all=false)] ∪
+        # Get all exported symbols from Core
+        [sym for sym in names(Core, all=false)] ∪
+        # Add some common operators and keywords
+        [Symbol("+"), Symbol("-"), Symbol("*"), Symbol("/"), Symbol("^"),
+         Symbol("=="), Symbol("!="), Symbol("<"), Symbol(">"), Symbol("<="), Symbol(">="),
+         Symbol("!"), Symbol("&&"), Symbol("||")]
+    )
+
+    # Load Oscar only when needed
+    function load_oscar()
+        if !isdefined(Main, :Oscar) || OSCAR_MODULE[] === nothing
+            # Load the Oscar module
+            oscar = Base.require(Base.PkgId(Base.UUID("f1435218-dba5-11e9-1e4d-f1a5fab5fc13"), "Oscar"))
+            
+            # Import Oscar into Main
+            Core.eval(Main, :(using Oscar))
+            
+            # Store the module reference
+            OSCAR_MODULE[] = oscar
+            
+            # Get all exported symbols from Oscar
+            if isempty(OSCAR_SYMBOLS)
+                # Get only the exported identifiers
+                oscar_identifiers = names(oscar, all=false)
+                for name in oscar_identifiers
+                    push!(OSCAR_SYMBOLS, name)
+                end
+                println("Loaded $(length(OSCAR_SYMBOLS)) Oscar identifiers")
+            end
+            
+            return oscar
+        end
+        return OSCAR_MODULE[]
+    end
+
+    # Configuration
+    const CONFIG = Dict(
+        :debug => false,
+        :context => Dict(
+            :history => []
+        )
+    )
+    
+    # Export functions
+    export validate_oscar_code, execute_statement, execute_statement_with_format
+
+    function validate_oscar_code(code::String)::Union{Nothing,String}
+        try
+            # First, check if the code is empty
+            isempty(strip(code)) && return "Code is empty"
+            
+            # Try to parse the code to check for syntax errors
+            try
+                Meta.parseall(code)
+            catch e
+                return "Syntax error in code: $e"
+            end
+            
+            # Extract all symbols from the expression
+            symbols = Set{Symbol}()
+            assigned_vars = Set{Symbol}()
+            
+            function extract_symbols_and_assignments!(ex, is_assignment=false)
+                if isa(ex, Expr)
+                    # Handle assignments to track local variables
+                    if ex.head == :(=) && length(ex.args) == 2
+                        # Handle single assignment (x = ...)
+                        if isa(ex.args[1], Symbol)
+                            push!(assigned_vars, ex.args[1])
+                            extract_symbols_and_assignments!(ex.args[2])
+                            return
+                        # Handle multiple assignment (x, y = ...)
+                        elseif ex.args[1] isa Expr && ex.args[1].head == :tuple
+                            for arg in ex.args[1].args
+                                if isa(arg, Symbol)
+                                    push!(assigned_vars, arg)
+                                end
+                            end
+                            extract_symbols_and_assignments!(ex.args[2])
+                            return
+                        end
+                    # Handle module access (e.g., Oscar.PolynomialRing)
+                    elseif ex.head == :. && length(ex.args) >= 1
+                        if ex.args[1] isa Symbol && ex.args[1] == :Oscar && length(ex.args) == 2
+                            if ex.args[2] isa QuoteNode
+                                push!(symbols, ex.args[2].value)
+                            end
+                        end
+                    end
+                    # Recurse into expression arguments
+                    for arg in ex.args
+                        extract_symbols_and_assignments!(arg, is_assignment)
+                    end
+                elseif isa(ex, Symbol) && !is_assignment
+                    push!(symbols, ex)
+                end
+                return nothing
+            end
+            
+            extract_symbols_and_assignments!(Meta.parseall(code))
+            
+            # Remove assigned variables from symbols to check
+            symbols = setdiff(symbols, assigned_vars)
+            
+            # Skip validation if no symbols to check
+            isempty(symbols) && return nothing
+            
+            # Try to load Oscar if not already loaded
+            try
+                oscar = load_oscar()
+            catch e
+                @warn "Failed to load Oscar for validation: $e"
+                return nothing  # Skip validation if we can't load Oscar
+            end
+            
+            # Get the Oscar module and its exported symbols
+            oscar = OSCAR_MODULE[]
+            oscar_exported = Set(names(oscar, all=false))
+            
+            # Check each symbol against known scopes
+            for sym in symbols
+                sym_str = string(sym)
+                
+                # Skip special forms and built-ins
+                startswith(sym_str, '#') && continue
+                startswith(sym_str, '@') && continue
+                sym in (:Oscar, :Main) && continue
+                
+                # Check if symbol is defined in any known scope or is in Oscar's symbols
+                if !(sym in oscar_exported) &&
+                   !(sym in WHITELISTED_SYMBOLS) &&
+                   !isdefined(Main, sym)
+                    
+                    # Check if it's a function call with a string literal (like `:(")"`)
+                    if !(sym isa Symbol)
+                        continue
+                    end
+                    
+                    # If we get here, the symbol is not defined anywhere we know about
+                    return "Invalid identifier: $sym is not found in Oscar or defined in the current scope"
+                end
+            end
+            
+            return nothing
+        catch e
+            @error "Error during validation" exception=(e, catch_backtrace())
+            return "Error validating code: $e"
+        end
+    end
+    
+    function execute_statement(oscar_code::String; clear_context=false)
+        # Load Oscar and validate the code
+        oscar = load_oscar()
+        debug_print("Starting Oscar execution")
+        
+        # Validate the code
+        validation_error = validate_oscar_code(oscar_code)
+        if validation_error !== nothing
+            error(validation_error)
+        end
+        
+        # Execute the code and capture the result
+        try
+            # Clear context if requested
+            if clear_context
+                CONFIG[:context][:history] = []
+            end
+            
+            # Split code into individual statements
+            stmts = filter(!isempty ∘ strip, split(oscar_code, ';'))
+            
+            # Create a temporary module that imports Oscar
+            mod = Module()
+            Core.eval(mod, :(using Oscar))
+            
+            # Evaluate each statement in the temporary module
+            result = nothing
+            for stmt in stmts
+                stmt = strip(stmt)
+                isempty(stmt) && continue
+                result = Core.eval(mod, Meta.parse(stmt))
+            end
+            
+            # Store the result in the context
+            push!(CONFIG[:context][:history], (code=oscar_code, result=result))
+            
+            return result
+        catch e
+            error_msg = "Error executing Oscar code: $e\nCode: $oscar_code\n$(sprint(showerror, e, catch_backtrace()))"
+            @error error_msg
+            error("Error executing Oscar code: $e\nCode: $oscar_code")
+        end
+    end
+    
+    function execute_statement_with_format(oscar_code::String; output_format=:string)
+        # Load Oscar only when needed
+        oscar = load_oscar()
+        
+        # Execute the code and capture the result
+        try
+            # Use eval to execute the code
+            result = eval(Meta.parse(oscar_code))
+            
+            # Format the output based on requested format
+            if output_format == :latex
+                return oscar.latex(result)
+            elseif output_format == :html
+                return oscar.html(result)
+            else  # default to string
+                return string(result)
+            end
+        catch e
+            error("Error executing Oscar code: $e\nCode: $oscar_code")
+        end
+    end
+end
+
+# Re-export the exported functions from the submodules
+using .execute: validate_oscar_code, execute_statement, execute_statement_with_format
+export validate_oscar_code, execute_statement, execute_statement_with_format
 
 # Clean up response text by removing markdown code block indicators
 function clean_response_text(text::String)
@@ -27,7 +281,7 @@ using .SeedDictionary: SEED_DICTIONARY
 include("backends/local.jl")
 include("backends/huggingface.jl")
 include("backends/github.jl")
-include("execute.jl")
+
 
 """
     get_context([pretty=true])
@@ -562,24 +816,36 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
                 # Split the code into lines
                 lines = split(strip(response_code), '\n')
                 
-                # Validate each line
-                for line in lines
-                    if !isempty(strip(line))
-                        parsed_line = Meta.parse(line)
-                        if !isa(parsed_line, Expr)
-                            error("Generated code contains invalid expression: $line")
+                # Validate the code using Oscar's symbol validation
+                validation_error = validate_oscar_code(response_code)
+                if validation_error !== nothing
+                    # If there's a validation error, send it back to the LLM for correction
+                    error_message = "The generated code contains invalid identifiers. Please correct the following issue and try again:\n$validation_error\n\nProblematic code:\n```julia\n$response_code\n```"
+                    
+                    # Add the error to the context for the next attempt
+                    if !haskey(CONFIG[:context], :last_error) || CONFIG[:context][:last_error] != validation_error
+                        CONFIG[:context][:last_error] = validation_error
+                        CONFIG[:context][:error_count] = get(CONFIG[:context], :error_count, 0) + 1
+                        
+                        # If we've had too many errors, give up to avoid infinite loops
+                        if CONFIG[:context][:error_count] > 3
+                            error("Too many attempts to fix the code. Please check your input and try again.")
                         end
+                        
+                        # Ask the LLM to correct the code
+                        return process_statement("Please correct the following Oscar code. The error is: $validation_error\n\nCode to fix:\n```julia\n$response_code\n```"; backend=backend, kwargs...)
+                    else
+                        error("Failed to fix the code after multiple attempts. Last error: $validation_error")
                     end
                 end
                 
-                # Check if the code contains any undefined variables
-                vars = filter(x -> !isa(x, Symbol), collect(Base.names(Main)))
-                code_vars = unique([x for x in vars if occursin(string(x), response_code)])
-                if !isempty(code_vars)
-                    error("Generated code contains undefined variables: $(join(code_vars, ", "))")
+                # Reset error count if validation passes
+                if haskey(CONFIG[:context], :error_count)
+                    delete!(CONFIG[:context], :error_count)
+                    delete!(CONFIG[:context], :last_error)
                 end
             catch e
-                error("Could not parse Oscar code: $response_code. Error: $e")
+                error("Could not validate Oscar code: $response_code. Error: $e")
             end
 
             # If the code ends with print statement, extract just the expression
