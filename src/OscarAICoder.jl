@@ -478,8 +478,11 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
             "model" => model,
             "prompt" => prompt,
             "stream" => false,
-            "n_predict" => get(params, "n_predict", 256),
-            "temperature" => get(params, "temperature", 0.7),
+            "n_predict" => get(params, "n_predict", 128),
+            "temperature" => get(params, "temperature", 0.1),
+            "top_k" => get(params, "top_k", 5),
+            "top_p" => get(params, "top_p", 0.9),
+            "repeat_penalty" => get(params, "repeat_penalty", 1.05),
             "stop" => get(params, "stop", ["\nuser:", "\nassistant:"])
         )
 
