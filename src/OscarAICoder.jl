@@ -313,28 +313,54 @@ function configure_github_backend(; kwargs...)
     end
 end
 
+function clear_context!()
+    OscarHistory.clear_history!()
+    CONFIG[:context][:max_history] = 10
+end
+
 function process_statement(statement::String; backend=nothing, kwargs...)
     if CONFIG[:offline_mode] && !has_in_dictionary(statement)
         error("Statement not found in dictionary and offline mode is enabled")
     end
 
     # Add to history
-    push!(CONFIG[:context][:history], ("user", statement))
-    
-    # Set is_first_statement flag
-    CONFIG[:context][:is_first_statement] = length(CONFIG[:context][:history]) == 1
+    OscarHistory.add_history_entry("user", statement)
     
     # Enforce max history
-    if length(CONFIG[:context][:history]) > CONFIG[:context][:max_history]
-        # Keep the first entry and the last max_history-1 entries
-        CONFIG[:context][:history] = vcat(
-            CONFIG[:context][:history][1:1],  # Keep first entry
-            CONFIG[:context][:history][end-(CONFIG[:context][:max_history]-2):end]  # Keep last max_history-1 entries
-        )
-        debug_print("History truncated to max_history: $(CONFIG[:context][:max_history])")
-    end
+    OscarHistory.enforce_max_history!(CONFIG[:context][:max_history])
 
     return nothing
+end
+
+function delete_history_entry(index::Int)
+    # Get entry by ID
+    entry = OscarHistory.get_history_entry(index)
+    OscarHistory.delete_history_entry(index)
+    return nothing
+end
+
+function edit_history_entry(index::Int, role::String, content::String)
+    # Validate role
+    if role ∉ ["user", "assistant"]
+        error("Invalid role: $role. Must be either 'user' or 'assistant'")
+    end
+    
+    OscarHistory.update_history_entry(index, role, content)
+    return OscarHistory.get_history_entry(index)
+end
+
+# Getters for history state
+function get_history()
+    return OscarHistory.get_all_history()
+end
+
+function is_first_statement()
+    return OscarHistory.is_first_statement()
+end
+
+function set_max_history(max_history::Int)
+    CONFIG[:context][:max_history] = max_history
+    OscarHistory.enforce_max_history!(max_history)
 end
 
 function process_statement_full(statement::String; backend=nothing, kwargs...)

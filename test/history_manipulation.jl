@@ -24,20 +24,23 @@ function process_statement(statement::String; kwargs...)
     return nothing
 end
 
-@testset "Context Manipulation Tests" begin
+@testset "History Manipulation Tests" begin
     # Initialize history with two entries
     clear_context!()
     CONFIG[:context][:max_history] = 10  # Set default max history
     
     # Test empty history
-    @test length(CONFIG[:context][:history]) == 0
-    @test CONFIG[:context][:is_first_statement] == true
+    history = get_history()
+    @test length(history) == 0
+    @test is_first_statement() == true
     
     # Add first statement
     process_statement("First statement")
-    @test length(CONFIG[:context][:history]) == 1
-    @test CONFIG[:context][:history][1] == ("user", "First statement")
-    @test CONFIG[:context][:is_first_statement] == true
+    history = get_history()
+    @test length(history) == 1
+    @test history[1].content == "First statement"
+    @test history[1].role == "user"
+    @test is_first_statement() == true
     clear_context!()  # Clear after test
     
     # Add more statements
@@ -46,11 +49,15 @@ end
     process_statement("Third")
     
     # Verify initial state
-    @test length(CONFIG[:context][:history]) == 3
-    @test CONFIG[:context][:history][1] == ("user", "First")
-    @test CONFIG[:context][:history][2] == ("user", "Second")
-    @test CONFIG[:context][:history][3] == ("user", "Third")
-    @test CONFIG[:context][:is_first_statement] == false
+    history = get_history()
+    @test length(history) == 3
+    @test history[1].content == "First"
+    @test history[1].role == "user"
+    @test history[2].content == "Second"
+    @test history[2].role == "user"
+    @test history[3].content == "Third"
+    @test history[3].role == "user"
+    @test is_first_statement() == false
     clear_context!()  # Clear after test
 
     # Test max history
@@ -59,10 +66,14 @@ end
     process_statement("First")
     process_statement("Second")
     process_statement("Third")
-    @test length(CONFIG[:context][:history]) == 2
-    @test CONFIG[:context][:history][1] == ("user", "First")
-    @test CONFIG[:context][:history][2] == ("user", "Third")
-    @test CONFIG[:context][:is_first_statement] == false
+    
+    history = get_history()
+    @test length(history) == 2
+    @test history[1].content == "First"
+    @test history[1].role == "user"
+    @test history[2].content == "Third"
+    @test history[2].role == "user"
+    @test is_first_statement() == false
     clear_context!()  # Clear after test
 
     # Test deletion
@@ -70,19 +81,15 @@ end
     CONFIG[:context][:max_history] = 10
     process_statement("First")
     process_statement("Second")
-    @test length(CONFIG[:context][:history]) == 2
-    @test CONFIG[:context][:history][1] == ("user", "First")
-    @test CONFIG[:context][:history][2] == ("user", "Second")
-    @test CONFIG[:context][:is_first_statement] == false
+    history = get_history()
+    @test length(history) == 2
+    @test history[1].content == "First"
+    @test history[1].role == "user"
+    @test history[2].content == "Second"
+    @test history[2].role == "user"
+    @test is_first_statement() == false
 
     @testset "Deletion Tests" begin
-        # Setup test data
-        clear_context!()
-        process_statement("First statement")
-        process_statement("Second statement")
-        process_statement("Third statement")
-        @test length(CONFIG[:context][:history]) == 3
-        
         # Invalid indices
         @test_throws ErrorException delete_history_entry(0)  # Invalid index
         @test_throws ErrorException delete_history_entry(4)  # Out of bounds
@@ -93,20 +100,24 @@ end
         
         # Delete middle entry
         delete_history_entry(2)
-        @test length(CONFIG[:context][:history]) == 2
-        @test CONFIG[:context][:history][1] == ("user", "First statement")
-        @test CONFIG[:context][:history][2] == ("user", "Third statement")
+        history = get_history()
+        @test length(history) == 2
+        @test history[1].content == "First"
+        @test history[1].role == "user"
+        @test history[2].content == "Third"
+        @test history[2].role == "user"
         
         # Delete last entry
         delete_history_entry(2)
-        @test length(CONFIG[:context][:history]) == 1
-        @test CONFIG[:context][:history][1] == ("user", "First statement")
-        CONFIG[:context][:is_first_statement] = true  # Manually set since process_statement won't be called
-        @test CONFIG[:context][:is_first_statement] == true
+        history = get_history()
+        @test length(history) == 1
+        @test history[1].content == "First"
+        @test history[1].role == "user"
+        @test is_first_statement() == true
         
         # Clear context
         clear_context!()
-        @test CONFIG[:context][:is_first_statement] == true
+        @test is_first_statement() == true
         
         # Test invalid index after clearing
         @test_throws ErrorException delete_history_entry(2)  # Invalid index after clearing
@@ -121,10 +132,13 @@ end
     CONFIG[:context][:max_history] = 10
     process_statement("First")
     process_statement("Second")
-    @test length(CONFIG[:context][:history]) == 2
-    @test CONFIG[:context][:history][1] == ("user", "First")
-    @test CONFIG[:context][:history][2] == ("user", "Second")
-    @test CONFIG[:context][:is_first_statement] == false
+    history = get_history()
+    @test length(history) == 2
+    @test history[1].content == "First"
+    @test history[1].role == "user"
+    @test history[2].content == "Second"
+    @test history[2].role == "user"
+    @test is_first_statement() == false
 
     @testset "Editing Tests" begin
         # Invalid indices
@@ -141,15 +155,16 @@ end
         
         # Valid edit
         original = edit_history_entry(2, "user", "Updated")
-        @test original == ("user", "Second")
-        @test CONFIG[:context][:history][2] == ("user", "Updated")
-        @test CONFIG[:context][:is_first_statement] == false
+        @test original.content == "Second"
+        @test original.role == "user"
+        history = get_history()
+        @test history[2].content == "Updated"
+        @test history[2].role == "user"
+        @test is_first_statement() == false
     end
     clear_context!()  # Clear after editing tests
 end
 
-    # Test deletion
-    @testset "Deletion Tests" begin
         # Invalid indices
         @test_throws ErrorException delete_history_entry(0)  # Invalid index
         @test_throws ErrorException delete_history_entry(4)  # Out of bounds
