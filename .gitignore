@@ -44,7 +44,17 @@ manual.pdf
 *.synctex.gz
 *.fdb_latexmk
 *.fls
+*.idx
+*.ilg
+*.ind
+
 
 # Test output
 doc/tst/*.out
 doc/tst/*.log
+
+# Temp files are kept in this folder
+tmp/
+
+# Specific to CIP server
+.nfs*
