@@ -1,17 +1,27 @@
+# __precompile__(false)
+
 module OscarAICoder
 
 using JSON
 using Dates
+using Oscar
 
 # Include internal files
 include("internal/history_management.jl")
 include("internal/configuration.jl")
 include("internal/processing.jl")
+include("internal/validator.jl")
+include("execute.jl")
+
+# Include backends
+include("backends/local.jl")
+include("backends/huggingface.jl")
+include("backends/github.jl")
 
 # Export public API
-export process_statement, clear_context!, debug_mode!, debug_print, view_entries,
+export process_statement, debug_mode!, debug_print, view_entries,
        append_entry, delete_entry, clear_entries, edit_entry, save_to_file,
-       load_from_file
+       load_from_file, execute_statement, execute_statement_with_format, SEED_DICTIONARY, validate_oscar_code
 
 """
     process_statement(statement::String)
@@ -48,11 +58,6 @@ function process_statement(statement::String)
 
     # Clean the response
     response_code = clean_response(response)
-
-    # If we still don't have valid Oscar code, raise an error
-    if !occursin("R,", response_code) && !occursin("ideal", response_code) && !occursin("factor", response_code)
-        error("Could not generate valid Oscar code from response: $response_code")
-    end
     
     if CONFIG[:training_mode]
         println("\nGenerated Oscar code:")

@@ -4,6 +4,52 @@ using OscarAICoder
 using Test
 
 @testset "History Manipulation Tests" begin
+    clear_entries()
+    debug_mode!(true)
+
+    # Test empty history
+    @test isempty(view_entries())
+
+    # Test matrix calculations
+    process_statement("Calculate the determinant of the matrix [[1, 2], [3, 4]]")
+    history = view_entries()
+    @test length(history) == 1
+    @test history[1].content == "Calculate the determinant of the matrix [[1, 2], [3, 4]]"
+    @test history[1].role == "user"
+    
+    # Test the actual Oscar code generation
+    response = process_statement("Calculate the determinant of the matrix [[1, 2], [3, 4]]")
+    @test occursin("det", response)
+    @test occursin("[1, 2; 3, 4]", response)
+    
+    clear_context!()
+    
+    # Test polynomial and calculus operations
+    process_statement("Find the roots of x^2 - 4x + 4 = 0")
+    process_statement("Calculate the integral of x^2 from 0 to 1")
+    process_statement("Prove that sin^2(x) + cos^2(x) = 1")
+    
+    history = view_entries()
+    @test length(history) == 3
+    @test history[1].content == "Find the roots of x^2 - 4x + 4 = 0"
+    @test history[2].content == "Calculate the integral of x^2 from 0 to 1"
+    @test history[3].content == "Prove that sin^2(x) + cos^2(x) = 1"
+    
+    # Test the actual Oscar code generation
+    response1 = process_statement("Find the roots of x^2 - 4x + 4 = 0")
+    @test occursin("solve", response1)
+    @test occursin("x^2 - 4*x + 4", response1)
+    
+    response2 = process_statement("Calculate the integral of x^2 from 0 to 1")
+    @test occursin("integrate", response2)
+    @test occursin("x^2", response2)
+    @test occursin("0..1", response2)
+    
+    response3 = process_statement("Prove that sin^2(x) + cos^2(x) = 1")
+    @test occursin("sin", response3)
+    @test occursin("cos", response3)
+    @test occursin("==", response3)
+end
     clear_context!()
     debug_mode!(true)
 
