@@ -1,0 +1,44 @@
+\begin{theindex}
+
+  \item Acknowledgements, \hyperpage{7}
+
+  \indexspace
+
+  \item \texttt  {configure\_default\_backend} function, \hyperpage{5}
+  \item \texttt  {configure\_dictionary\_mode} function, \hyperpage{5}
+  \item \texttt  {configure\_github\_backend} function, \hyperpage{5}
+  \item \texttt  {configure\_huggingface\_backend} function, 
+		\hyperpage{5}
+  \item \texttt  {configure\_local\_backend} function, \hyperpage{5}
+  \item Contributing, \hyperpage{6}
+
+  \indexspace
+
+  \item \texttt  {debug\_mode} function, \hyperpage{6}
+  \item \texttt  {debug\_print} function, \hyperpage{6}
+
+  \indexspace
+
+  \item \texttt  {execute\_statement} function, \hyperpage{6}
+  \item \texttt  {execute\_statement\_with\_format} function, 
+		\hyperpage{6}
+
+  \indexspace
+
+  \item \texttt  {get\_context} function, \hyperpage{5}
+
+  \indexspace
+
+  \item License, \hyperpage{7}
+  \item \texttt  {load\_context} function, \hyperpage{5}
+
+  \indexspace
+
+  \item \texttt  {process\_statement} function, \hyperpage{5}
+
+  \indexspace
+
+  \item \texttt  {save\_context} function, \hyperpage{5}
+  \item \texttt  {set\_save\_dir} function, \hyperpage{5}
+
+\end{theindex}

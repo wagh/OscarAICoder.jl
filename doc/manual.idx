@@ -1,0 +1,20 @@
+\indexentry{process\_statement@\texttt  {process\_statement} function|hyperpage}{5}
+\indexentry{configure\_default\_backend@\texttt  {configure\_default\_backend} function|hyperpage}{5}
+\indexentry{configure\_dictionary\_mode@\texttt  {configure\_dictionary\_mode} function|hyperpage}{5}
+\indexentry{training\_mode!@\texttt  {training\_mode!} function|hyperpage}{5}
+\indexentry{get\_context@\texttt  {get\_context} function|hyperpage}{5}
+\indexentry{clear\_context!@\texttt  {clear\_context!} function|hyperpage}{5}
+\indexentry{save\_context@\texttt  {save\_context} function|hyperpage}{5}
+\indexentry{load\_context@\texttt  {load\_context} function|hyperpage}{5}
+\indexentry{set\_save\_dir@\texttt  {set\_save\_dir} function|hyperpage}{5}
+\indexentry{configure\_local\_backend@\texttt  {configure\_local\_backend} function|hyperpage}{5}
+\indexentry{configure\_huggingface\_backend@\texttt  {configure\_huggingface\_backend} function|hyperpage}{5}
+\indexentry{configure\_github\_backend@\texttt  {configure\_github\_backend} function|hyperpage}{5}
+\indexentry{debug\_mode!@\texttt  {debug\_mode!} function|hyperpage}{6}
+\indexentry{debug\_mode@\texttt  {debug\_mode} function|hyperpage}{6}
+\indexentry{debug\_print@\texttt  {debug\_print} function|hyperpage}{6}
+\indexentry{execute\_statement@\texttt  {execute\_statement} function|hyperpage}{6}
+\indexentry{execute\_statement\_with\_format@\texttt  {execute\_statement\_with\_format} function|hyperpage}{6}
+\indexentry{Contributing|hyperpage}{6}
+\indexentry{Acknowledgements|hyperpage}{7}
+\indexentry{License|hyperpage}{7}

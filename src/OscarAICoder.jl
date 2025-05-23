@@ -2,6 +2,7 @@ module OscarAICoder
 
 # __precompile__(false)
 
+using Oscar
 using HTTP, JSON
 using Dates
 
@@ -637,99 +638,22 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
         # Add response to history
         push!(CONFIG[:context][:history], ("assistant", response_text))
 
-        # Clean the response to make it directly executable
-        response_code = response_text
-        response_code = replace(response_code, r"```oscar\n?" => "")
-        response_code = replace(response_code, r"``\n?" => "")
-        response_code = replace(response_code, r"``\n?" => "")
-        response_code = replace(response_code, r"```
-?" => "")
-        response_code = replace(response_code, r"`\n?" => "")
-        response_code = replace(response_code, r"\`" => "")
-
-        # Remove language indicators and extra whitespace
-        response_code = replace(response_code, r"\s*Oscar\s*" => "")
-        response_code = replace(response_code, r"\s*oscar\s*" => "")
-        # response_code = replace(response_code, r"\s*using\s*Oscar\s*" => "")  # Remove using Oscar if present
-        response_code = strip(response_code)
-
-        # Handle string literals and escapes
-        # Unescape quotes in string literals
-        # response_code = replace(response_code, r"("|\')([^\\]+)("|\')" => s"\1\2\3")
-
-        # Handle escaped tabs
-        response_code = replace(response_code, r"\\t" => "\t")
-        
-        # Remove any remaining escape sequences
-        response_code = replace(response_code, r"\\(.)" => s"\1")
-        response_code = replace(response_code, r"\"\"\".*?\"\"\""s => "")  # Remove string literals
-        
-        # Remove any comments
-        response_code = replace(response_code, r"#.*?\n" => "")
-        
-        # Remove any print statements
-        response_code = replace(response_code, r"print\(.*?\)" => "")
-        
-        # Remove any Python-specific syntax
-        response_code = replace(response_code, r"result =" => "")
-        response_code = replace(response_code, r"\nresult" => "")
-        
-        # Replace statement variable with actual polynomial
-        response_code = replace(response_code, r"statement" => "x^3-1")
-        response_code = replace(response_code, r"\$statement" => "x^3-1")
-        
-        # Remove any leading/trailing whitespace
-        response_code = strip(response_code)
-        
-        # If the response is still not valid Oscar code, try to construct it
-        if !occursin("R,", response_code) && !occursin("ideal", response_code) && !occursin("factor", response_code)
-            # Try to construct Oscar code from the statement
-            if contains(lowercase(statement), "factorise") || contains(lowercase(statement), "factor")
-                # Look for polynomial expressions
-                # Using simple string operations instead of regex
-                poly = lowercase(statement)
-                if contains(poly, "factorise")
-                    poly = replace(poly, "factorise" => "")
-                elseif contains(poly, "factor")
-                    poly = replace(poly, "factor" => "")
-                end
-                poly = strip(poly)
-                
-                # Remove any "over rationals" phrase
-                poly = replace(poly, "over rationals" => "")
-                poly = strip(poly)
-                
-                response_code = "R, x = polynomial_ring(QQ, \"x\"); f = R($poly); factor(f)"
-            end
+    # Clean the response
+    response_code = clean_response(response)
+    
+    if CONFIG[:training_mode]
+        println("\nGenerated Oscar code:")
+        println("-------------------")
+        println(response_code)
+        println("-------------------")
+        println("\nWould you like to add this to the training dictionary? (y/n)")
+        if readline() == "y"
+            add_to_dictionary(statement, String(response_code))  # Convert to String
+            println("Successfully added to training dictionary!")
         end
-        
-        # If we still don't have valid Oscar code, raise an error
-        if !occursin("R,", response_code) && !occursin("ideal", response_code) && !occursin("factor", response_code)
-            error("Could not generate valid Oscar code from response: $response_code")
-        end
-        
-        # If the code ends with print statement, extract just the expression
-        print_match = match(r"print\((.*)\)$", response_code)
-        if print_match !== nothing
-            response_code = print_match.captures[1]
-        end
-
-        # Handle training mode
-        if CONFIG[:training_mode]
-            println("\nGenerated Oscar code:")
-            println("-------------------")
-            println(response_code)
-            println("\nWould you like to add this to the training dictionary? (y/n)")
-            if readline() == "y"
-                add_to_dictionary(statement, String(response_code))  # Convert to String
-                println("Successfully added to training dictionary!")
-            end
-        end
-        
-        return String(response_code)  # Ensure we return a proper String
-    catch e
-        error("Error processing statement: $e")
     end
+
+    return response_code
 end
 
 end # module OscarAICoder
