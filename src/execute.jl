@@ -1,11 +1,5 @@
 using Base.Meta
-
-# Load Oscar only when needed
-function load_oscar()
-    global Oscar
-    Oscar = Base.require(Base.PkgId(Base.UUID("f1435218-dba5-11e9-1e4d-f1a5fab5fc13"), "Oscar"))
-    return Oscar
-end
+using Oscar
 
 """
     execute_statement(oscar_code::String)
@@ -13,17 +7,14 @@ end
 Execute Oscar code and return the result.
 """
 
-function execute_statement(oscar_code::String; clear_context=false)
+function execute_statement(oscar_code::Union{String, SubString{String}}; clear_context=false)
+    # Convert SubString to String if needed
+    code_str = String(oscar_code)
     
-    # Load Oscar only when needed
-    Oscar = load_oscar()
     debug_print("Starting Oscar execution")
     
     # Execute the code and capture the result
     try
-        # Ensure Oscar is imported
-        eval(Meta.parse("using Oscar"))
-        
         # Clear context if requested
         if clear_context
             CONFIG[:context][:history] = []
@@ -33,7 +24,7 @@ function execute_statement(oscar_code::String; clear_context=false)
         is_first_statement = isempty(CONFIG[:context][:history])
 
         # Add current statement to history
-        push!(CONFIG[:context][:history], ("user", oscar_code))
+        push!(CONFIG[:context][:history], ("user", code_str))
         
         # Keep only last N interactions
         if length(CONFIG[:context][:history]) > CONFIG[:context][:max_history]

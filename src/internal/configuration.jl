@@ -1,28 +1,5 @@
 # Configuration Management
 
-# Default configuration
-const CONFIG = Dict(
-    :debug_mode => false,
-    :training_mode => false,
-    :default_backend => :local,
-    :backend_settings => Dict(
-        :local => Dict(
-            :url => "http://localhost:11434/api/generate",
-            :model => "qwen2.5-coder",
-            :model_choices => [:qwen2_5, :qwen2_5_coder, :oscar_coder]
-        ),
-        :remote => Dict(
-            :url => "",
-            :model => ""
-        )
-    )
-)
-
-# Seed dictionary for training
-const SEED_DICTIONARY = Dict{
-    String, String
-}()
-
 # Local debug flag
 const LOCAL_DEBUG = false
 
@@ -56,6 +33,45 @@ end
 Clear all context and reset the conversation.
 """
 function clear_context!()
-    clear_entries()
+    CONFIG[:context][:history] = []
     debug_print("Context cleared")
+end
+
+"""
+    configure_backend(backend::Symbol; kwargs...)
+
+Configure settings for a specific backend.
+
+# Arguments
+- `backend::Symbol`: The backend to configure (:local, :remote, :huggingface, :github)
+- `kwargs...`: Keyword arguments to set for the backend
+"""
+function configure_backend(backend::Symbol; kwargs...)
+    if !(backend in keys(CONFIG[:backend_settings]))
+        error("Unknown backend: $backend. Available backends: $(keys(CONFIG[:backend_settings]))")
+    end
+    
+    backend_settings = CONFIG[:backend_settings][backend]
+    for (key, value) in kwargs
+        if haskey(backend_settings, key)
+            backend_settings[key] = value
+        else
+            error("Invalid keyword argument '$key' for backend $backend")
+        end
+    end
+end
+
+"""
+    set_default_backend(backend::Symbol)
+
+Set the default backend to use.
+
+# Arguments
+- `backend::Symbol`: The backend to use (:local, :remote, :huggingface, :github)
+"""
+function set_default_backend(backend::Symbol)
+    if !(backend in keys(CONFIG[:backend_settings]))
+        error("Unknown backend: $backend. Available backends: $(keys(CONFIG[:backend_settings]))")
+    end
+    CONFIG[:default_backend] = backend
 end

@@ -1,170 +1,22 @@
 const OSCAR_IDENTIFIERS = names(Oscar, all=false)
+const declared_vars = Set{Symbol}()
 
-# """
-#     validate_oscar_code(code::String)
+"""
+    validate_oscar_code(code::String)
 
-# Validate Oscar code for syntax and semantic correctness.
+Validate Oscar code for syntax and semantic correctness.
 
-# # Returns
-# - `Nothing`: If the code is valid
-# - `String`: Error message if the code is invalid
-# """
-# function validate_oscar_code(code::String)::Union{Nothing,String}
-#     try
-#         debug_print("Validating Oscar code: $code")
-        
-#         # First, check if the code is empty
-#         isempty(strip(code)) && return "Code is empty"
-        
-#         # Parse the code once
-#         debug_print("Parsing code...")
-#         parsed = Meta.parseall(code)
-#         debug_print("Parsed expression: $parsed")
-        
-#         # Extract all identifiers from the parsed code
-#         debug_print("Extracting identifiers...")
-#         identifiers = Set{String}()
-#         function collect_identifiers(expr)
-#             if isa(expr, Symbol)
-#                 # Don't collect symbols that are numbers or special characters
-#                 sym_str = string(expr)
-#                 if !isdigit(sym_str[1]) && !occursin(r"^[\[\]\.\(\)\{\}\+\-\*\/%=<>!|&\$#@~^_:,;\?\"'`\\]+$", sym_str)
-#                     push!(identifiers, sym_str)
-#                 end
-#             elseif isa(expr, Expr)
-#                 for arg in expr.args
-#                     collect_identifiers(arg)
-#                 end
-#             end
-#         end
-#         collect_identifiers(parsed)
-#         debug_print("Found identifiers: $(join(sort(collect(identifiers)), ", "))")
-        
-#         # Check if all identifiers are valid Oscar identifiers
-#         debug_print("Checking identifier validity...")
-#         # Save Oscar identifiers to a temporary file
-#         temp_file = "/tmp/oscar_identifiers.txt"
-#         open(temp_file, "w") do io
-#             write(io, "Oscar Identifiers:\n")
-#             for id in sort(collect(oscar_identifiers))
-#                 write(io, "$id\n")
-#             end
-#         end
-#         debug_print("Oscar identifiers saved to $temp_file")
-        
-#         # Filter invalid identifiers
-#         invalid_identifiers = filter(id -> !any(x -> string(x) == id, oscar_identifiers), identifiers)
-#         if !isempty(invalid_identifiers)
-#             debug_print("Found invalid identifiers: $(join(sort(collect(invalid_identifiers)), ", "))")
-#             return "Invalid Oscar code: Undefined identifiers:\n\n $(join(invalid_identifiers, ", "))"
-#         end
-        
-#         # Create a sandbox environment with Oscar loaded
-#         debug_print("Creating sandbox environment...")
-#         sandbox = Module()
-#         Core.eval(sandbox, :(import Oscar))
-        
-#         # Evaluate the code in the sandbox
-#         debug_print("Evaluating code in sandbox...")
-#         try
-#             Core.eval(sandbox, parsed)
-#             debug_print("Code evaluation successful")
-#         catch e
-#             debug_print("Error during sandbox evaluation: $e")
-#             if isa(e, MethodError)
-#                 return "Runtime error: MethodError: no method matching $(e.f)($(join(map(string, e.args), ", ")))"
-#             elseif isa(e, UndefVarError)
-#                 return "Runtime error: $(typeof(e))"
-#             else
-#                 return "Runtime error: $e"
-#             end
-#         end
-        
-#         debug_print("Validation successful")
-#         return nothing
-#     catch e
-#         debug_print("Error in validation: $e")
-#         if isa(e, UndefVarError)
-#             return "Invalid Oscar code: $(typeof(e))"
-#         elseif isa(e, SyntaxError)
-#             return "Syntax error in code: $(typeof(e))"
-#         else
-#             return "Error in validation: $e"
-#         end
-#     end
-# end
-
-
-# function validate_oscar_code(code::String)::Union{Nothing,String}
-#     debug_print("Validating Oscar code: $code")
-        
-#     # First, check if the code is empty
-#     isempty(strip(code)) && return "Code is empty"
-
-#     # Step 1: Syntax check        
-#     # Parse the code (syntax check)
-#     debug_print("Parsing code...")
-#     parsed = try
-#                 Meta.parseall(code)
-#             catch e
-#                 return "Syntax error: $e"
-#             end
-#     debug_print("Parsed expression: $parsed")
-
-#     # Step 2: Semantic check
-#     # Collect identifiers from AST
-#     debug_print("Collecting identifiers from AST...")
-#     identifiers = Set{String}()
-#     function collect_identifiers(expr)
-#         if expr isa Symbol
-#             sym_str = string(expr)
-#             if !isdigit(sym_str[1]) && !occursin(r"^[\[\]\.\(\)\{\}\+\-\*\/%=<>!|&\$#@~^_:,;\?\"'`\\]+$", sym_str)
-#                 push!(identifiers, sym_str)
-#             end
-#         elseif expr isa Expr
-#             for arg in expr.args
-#                 collect_identifiers(arg)
-#             end
-#         end
-#     end
-#     collect_identifiers(parsed)
-#     debug_print("Collected identifiers: $(join(collect(identifiers), ", "))")
-
-#     # Check if all identifiers are valid Oscar identifiers
-#     debug_print("Checking identifier validity...")
-#     invalid_identifiers = filter(id -> !any(x -> string(x) == id, OSCAR_IDENTIFIERS), identifiers)
-#     if !isempty(invalid_identifiers)
-#         debug_print("Found invalid identifiers: $(join(collect(invalid_identifiers), ", "))")
-#         return "Invalid Oscar code: Undefined identifiers: $(join(invalid_identifiers, ", "))"
-#     end
-#     debug_print("All identifiers are valid Oscar identifiers")
-        
-#     # Evaluate safely in sandbox
-#     debug_print("Creating sandbox environment...")
-#     sandbox = Module()
-#     Core.eval(sandbox, :(import Oscar))
-#     debug_print("Oscar imported in sandbox")
-
-#     try
-#         debug_print("Evaluating code in sandbox...")
-#         Core.eval(sandbox, parsed)
-#         debug_print("Code evaluation successful")
-#         catch e
-#             debug_print("Error during sandbox evaluation: $e")
-#             # Explicit runtime error feedback
-#             return "Runtime error during evaluation: $e"
-#         end
-
-#     debug_print("Validation successful")
-#     return nothing
-
-# end
-
-function validate_oscar_code(code::String)::Union{Nothing,String}
-    debug_print("Validating Oscar code: $code")
+# Returns
+- `Nothing`: If the code is valid
+- `String`: Error message if the code is invalid
+"""
+function validate_oscar_code(code::Union{String, SubString{String}})::Union{Nothing,String}
+    # Convert SubString to String if needed
+    code_str = String(code)
+    debug_print("Validating Oscar code: $code_str")
    
     # First, check if the code is empty
-    isempty(strip(code)) && return "Code is empty"
+    isempty(strip(code_str)) && return "Code is empty"
     
     # Step 1: Syntax check        
     # Parse the code (syntax check)
@@ -195,15 +47,34 @@ function validate_oscar_code(code::String)::Union{Nothing,String}
 
     # Collect declarations
     debug_print("Collecting declarations...")
-    empty!(declared_vars)
-    collect_declarations(parsed)
-    debug_print("Collected declared variables: $(join(map(string, collect(declared_vars)), ", "))")
+    local_vars = Set{Symbol}()  # Use a local variable instead of global
+    collect_declarations(parsed, local_vars)
+    debug_print("Collected declared variables: $(join(map(string, collect(local_vars)), ", "))")
 
-    # Create a set of all valid identifiers (Oscar + declared)
+    # Update global declared_vars for this validation
+    empty!(declared_vars)
+    union!(declared_vars, local_vars)
+
+    # Add identifiers from context history
+    debug_print("Collecting identifiers from context history...")
+    for (role, code) in CONFIG[:context][:history]
+        if role == "assistant" && !isempty(code)
+            try
+                parsed = Meta.parseall(code)
+                collect_identifiers(parsed)
+            catch
+                continue
+            end
+        end
+    end
+    debug_print("Total identifiers from history: $(length(identifiers))")
+
+    # Create a set of all valid identifiers (Oscar + declared + history)
     debug_print("Creating set of all valid identifiers...")
     valid_identifiers = Set{String}()
     union!(valid_identifiers, map(string, collect(OSCAR_IDENTIFIERS)))
     union!(valid_identifiers, map(string, collect(declared_vars)))
+    union!(valid_identifiers, identifiers)  # Add identifiers from history
     debug_print("Total valid identifiers: $(length(valid_identifiers))")
 
     # Check if all identifiers are valid
@@ -215,62 +86,89 @@ function validate_oscar_code(code::String)::Union{Nothing,String}
     end
     debug_print("All identifiers are valid")
 
-    # # Evaluate safely in sandbox
-    # debug_print("Creating sandbox environment...")
-    # sandbox = Module()
-    # Core.eval(sandbox, :(import Oscar))
-    # debug_print("Oscar imported in sandbox")
-
-    # try
-    #     debug_print("Evaluating code in sandbox...")
-    #     Core.eval(sandbox, parsed)
-    #     debug_print("Code evaluation successful")
-    # catch e
-    #     debug_print("Error during sandbox evaluation: $e")
-    #     # Explicit runtime error feedback
-    #     return "Runtime error during evaluation: $e"
-    # end
-
     debug_print("Validation successful")
     return nothing
 
 end
 
-
-declared_vars = Set{Symbol}()
-
-function collect_declarations(expr)
+function collect_declarations(expr, vars::Set{Symbol})
     if expr isa Expr
         if expr.head == :(=) || expr.head == :global || expr.head == :local || expr.head == :const
-            # Assignment or declaration, left-hand side is a variable or tuple
-            lhs = expr.args[1]
-            collect_lhs_vars(lhs)
+            # Handle polynomial ring declarations specially
+            if expr.args[2] isa Expr && expr.args[2].head == :call && 
+               expr.args[2].args[1] == :polynomial_ring
+                # For polynomial_ring(R, (x,y,z)), we need to handle both R and (x,y,z)
+                lhs = expr.args[1]
+                if lhs isa Expr && lhs.head == :tuple
+                    # Handle tuple case: (R, (x,y,z))
+                    for elem in lhs.args
+                        collect_lhs_vars(elem, vars)
+                    end
+                else
+                    # Handle single variable case: R
+                    collect_lhs_vars(lhs, vars)
+                end
+            else
+                # Regular assignment/declaration
+                lhs = expr.args[1]
+                collect_lhs_vars(lhs, vars)
+            end
         elseif expr.head == :for
             # For loop: first arg is the loop variable (Symbol or destructuring)
             loopvar = expr.args[1]
-            collect_lhs_vars(loopvar)
+            collect_lhs_vars(loopvar, vars)
             # Recurse into the body of the loop
-            collect_declarations(expr.args[end])
+            collect_declarations(expr.args[end], vars)
         elseif expr.head == :block
             # Multiple expressions in a block
             for subexpr in expr.args
-                collect_declarations(subexpr)
+                collect_declarations(subexpr, vars)
             end
         else
             # Recursively process all arguments
             for arg in expr.args
-                collect_declarations(arg)
+                collect_declarations(arg, vars)
             end
         end
     end
 end
 
-function collect_lhs_vars(lhs)
+function collect_lhs_vars(lhs::Any, vars::Set{Symbol})
     if lhs isa Symbol
-        push!(declared_vars, lhs)
+        push!(vars, lhs)
     elseif lhs isa Expr && lhs.head == :tuple
         for elem in lhs.args
-            collect_lhs_vars(elem)
+            collect_lhs_vars(elem, vars)
         end
     end
+end
+
+"""
+    has_in_dictionary(statement::String)
+
+Check if a statement contains only valid identifiers.
+"""
+function has_in_dictionary(statement::String)::Bool
+    # Parse the statement to get identifiers
+    parsed = Meta.parseall(statement)
+    identifiers = Set{String}()
+    
+    function collect_identifiers(expr)
+        if expr isa Symbol
+            push!(identifiers, string(expr))
+        elseif expr isa Expr
+            for arg in expr.args
+                collect_identifiers(arg)
+            end
+        end
+    end
+    collect_identifiers(parsed)
+    
+    # Create a set of all valid identifiers
+    valid_identifiers = Set{String}()
+    union!(valid_identifiers, map(string, collect(OSCAR_IDENTIFIERS)))
+    union!(valid_identifiers, map(string, collect(declared_vars)))
+    
+    # Check if all identifiers are valid
+    return all(id -> in(id, valid_identifiers), identifiers)
 end

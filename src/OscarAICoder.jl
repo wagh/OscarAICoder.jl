@@ -1,87 +1,62 @@
 module OscarAICoder
 
-# __precompile__(false)
-
-using Oscar
+# Core dependencies
+import Oscar
 using HTTP, JSON
 using Dates
 
-# Clean up response text by removing markdown code block indicators
+# Internal modules and constants
+include("internal/configuration.jl")
+include("internal/history_management.jl")
+include("internal/processing.jl")
+include("internal/validator.jl")
+
+# Backend modules
+include("backends/local.jl")
+include("backends/huggingface.jl")
+include("backends/github.jl")
+
+# External modules
+include("execute.jl")
+
+# Export public API
+export process_statement, debug_mode!, debug_print, view_entries,
+       append_entry, delete_entry, clear_entries, edit_entry, save_to_file,
+       load_from_file, execute_statement, execute_statement_with_format, SEED_DICTIONARY, validate_oscar_code
+
+# Internal utilities
 function clean_response_text(text::String)
     # Remove ```oscar and ``` markers
     text = replace(text, r"```(?:oscar)?\s*" => "")
     # Remove any remaining backticks
     text = replace(text, r"`" => "")
-    # Trim whitespace
-    return strip(text)
+    
+    # Replace Python-style power operator with Oscar's power operator
+    text = replace(text, r"(\w+)\*\*(\d+)" => s"\1^\2")
+    
+    # Find the ring variable from the polynomial ring declaration
+    ring_var = nothing
+    m = match(r"([a-zA-Z_][a-zA-Z_0-9]*)\s*,\s*\([^)]+\)\s*=\s*polynomial_ring", text)
+    if m !== nothing
+        ring_var = m.captures[1]
+    end
+    
+    # Fix Ideal syntax: convert Ideal(...) to ideal(R, [...]) using the correct ring variable
+    ring = ring_var !== nothing ? ring_var : "R"
+    text = replace(text, r"Ideal\s*\(([^)]+)\)" => s"ideal($ring, [\1])")
+    
+    # Remove extra whitespace around operators
+    text = replace(text, r"\s*([+-/*=])\s*" => s"\1")
+    
+    # Trim whitespace and remove empty lines
+    text = strip(text)
+    text = replace(text, r"\s+" => " ")
+    
+    return text
 end
 
-# Simple timestamp function using Dates standard library
 function current_timestamp()
     return Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
-end
-
-export process_statement, configure_default_backend, configure_dictionary_mode, configure_github_backend, execute_statement, execute_statement_with_format, debug_mode!, debug_mode, debug_print, training_mode!, training_mode, get_context, save_context, load_context, set_save_dir
-
-include("seed_dictionary.jl")  # Includes SEED_DICTIONARY
-using .SeedDictionary: SEED_DICTIONARY
-include("backends/local.jl")
-include("backends/huggingface.jl")
-include("backends/github.jl")
-include("execute.jl")
-
-"""
-    get_context([pretty=true])
-
-Get the current conversation context including history and configuration.
-
-# Arguments
-- `pretty::Bool`: If true (default), returns a formatted string. If false, returns the raw Dict.
-
-# Returns
-- If `pretty=true`: A formatted string of the context (human-readable)
-- If `pretty=false`: A dictionary containing the current context with keys:
-  - `:history`: Array of previous interactions as (role, message) tuples
-  - `:max_history`: Maximum number of interactions to keep
-"""
-function get_context(pretty::Bool=true)
-    ctx = deepcopy(CONFIG[:context])
-    if !pretty
-        return ctx
-    end
-    
-    # Print directly to stdout
-    println("Context (max_history: $(ctx[:max_history]))")
-    println(repeat("-", 50))
-    
-    # Group interactions by call number (each user-assistant pair is one call)
-    call_num = 1
-    i = 1
-    while i <= length(ctx[:history])
-        # Get user message if it exists
-        if i <= length(ctx[:history]) && ctx[:history][i][1] == "user"
-            println("[", call_num, "] ", "User:")
-            for line in split(ctx[:history][i][2], '\n')
-                println("    ", line)
-            end
-            i += 1
-        end
-        
-        # Get assistant response if it exists
-        if i <= length(ctx[:history]) && ctx[:history][i][1] == "assistant"
-            println("[", call_num, "] ", "Assistant:")
-            for line in split(ctx[:history][i][2], '\n')
-                println("    ", line)
-            end
-            i += 1
-        end
-        
-        call_num += 1
-        println()  # Add empty line between interactions
-    end
-    
-    # Return nothing since we're printing directly
-    return nothing
 end
 
 # Configuration
@@ -125,276 +100,24 @@ const CONFIG = Dict{Symbol, Any}(
 )
 
 """
-    set_save_dir(dir::String)
+    process_statement(statement::String)
 
-Set the directory where session files will be saved.
-
-# Arguments
-- `dir::String`: Path to the directory where session files should be saved
-"""
-function set_save_dir(dir::String)
-    # Create the directory if it doesn't exist
-    mkpath(dir)
-    CONFIG[:save_dir] = abspath(dir)
-    return CONFIG[:save_dir]
-end
-
-"""
-    save_context([filename::String])
-
-Save the current context to a file.
+Process a mathematical statement and generate Oscar code.
 
 # Arguments
-- `filename::String`: (optional) Name of the file to save to. If not provided,
-  a filename will be generated using the current timestamp.
+- `statement::String`: The mathematical statement to process
 
 # Returns
-- `String`: The full path to the saved file
+- `String`: The generated Oscar code
+
+# Throws
+- `ErrorException`: If invalid backend is specified or if Oscar code generation fails
 """
-function save_context(filename::Union{String,Nothing}=nothing)
-    # Ensure save directory exists
-    mkpath(CONFIG[:save_dir])
-    
-    # Generate filename if not provided
-    if filename === nothing
-        timestamp = current_timestamp()
-        filename = "OscarAICoder_session_$(timestamp).json"
-    end
-    
-    # Ensure .json extension
-    if !endswith(lowercase(filename), ".json")
-        filename = "$filename.json"
-    end
-    
-    # Create full path
-    filepath = abspath(joinpath(CONFIG[:save_dir], filename))
-    
-    # Prepare data to save
-    save_data = Dict(
-        :metadata => Dict(
-            :saved_at => current_timestamp(),
-            :version => "1.0",
-            :config => Dict(
-                :max_history => CONFIG[:context][:max_history]
-            )
-        ),
-        :history => CONFIG[:context][:history]
-    )
-    
-    # Save to file
-    open(filepath, "w") do f
-        JSON.print(f, save_data, 2)
-    end
-    
-    return filepath
-end
-
-"""
-    load_context(filename::String; clear_current::Bool=true)
-
-Load context from a file.
-
-# Arguments
-- `filename::String`: Name of the file to load from
-- `clear_current::Bool`: If true (default), clears current context before loading
-
-# Returns
-- `Dict`: The loaded context
-"""
-function load_context(filename::String; clear_current::Bool=true)
-    # Create full path
-    if !isabspath(filename)
-        filename = joinpath(CONFIG[:save_dir], filename)
-    end
-    
-    # Read and parse the file
-    data = JSON.parsefile(filename)
-    
-    # Clear current context if requested
-    if clear_current
-        CONFIG[:context][:history] = []
-    end
-    
-    # Helper function to safely get a value with either symbol or string key
-    safe_get(dict, key) = haskey(dict, key) ? dict[key] : get(dict, string(key), nothing)
-    
-    # Get history from data
-    history = safe_get(data, :history)
-    if history === nothing
-        return CONFIG[:context]  # No history found in file
-    end
-    
-    # Append loaded history
-    for item in history
-        if isa(item, Vector) && length(item) >= 2
-            # Handle both ["role", "message"] and ["user", "message"] formats
-            role = string(item[1])
-            message = string(item[2])
-            push!(CONFIG[:context][:history], (role, message))
-        end
-    end
-    
-    # Update max_history if present in saved data
-    if haskey(data, "metadata") || haskey(data, :metadata)
-        metadata = safe_get(data, :metadata)
-        if haskey(metadata, "config") || haskey(metadata, :config)
-            config = safe_get(metadata, :config)
-            if haskey(config, "max_history") || haskey(config, :max_history)
-                CONFIG[:context][:max_history] = safe_get(config, :max_history)
-            end
-        end
-    end
-    
-    return CONFIG[:context]
-end
-
-# Debug system
-const LOCAL_DEBUG = false  # Enable debug printing for Local module
-
-"""
-    debug_print(msg::String)
-
-Print a debug message if debug mode is enabled.
-"""
-function debug_print(msg::String; prefix="[DEBUG]")
-    # Always print debug messages from Local module
-    if CONFIG[:debug_mode] || LOCAL_DEBUG
-        println("$prefix $msg")
-    end
-end
-
-function debug_print_request(url::String, data::Dict)
-    if CONFIG[:debug_mode] || LOCAL_DEBUG
-        debug_print("Request URL: $url", prefix="[HTTP]")
-        debug_print("Request Data: $(JSON.json(data, 2))", prefix="[HTTP]")
-    end
-end
-
-function debug_print_response(response::HTTP.Response)
-    if CONFIG[:debug_mode] || LOCAL_DEBUG
-        debug_print("Response Status: $(response.status)", prefix="[HTTP]")
-        debug_print("Response Headers: $(Dict(response.headers))", prefix="[HTTP]")
-        try
-            body = String(response.body)
-            debug_print("Response Body: $body", prefix="[HTTP]")
-        catch e
-            debug_print("Error reading response body: $e", prefix="[ERROR]")
-        end
-    end
-end
-
-"""
-    debug_mode!(state::Bool)
-
-Set the debug mode state.
-"""
-function debug_mode!(state::Bool)
-    CONFIG[:debug_mode] = state
-end
-
-"""
-    debug_mode()
-
-Get the current debug mode state.
-"""
-function debug_mode()
-    return CONFIG[:debug_mode]
-end
-
-# Utility functions
-
-"""
-    add_to_dictionary(input::String, output::String)
-
-Add a new entry to the seed dictionary
-"""
-function add_to_dictionary(input::String, output::String)
-    push!(SEED_DICTIONARY, Dict(
-        "input" => input,
-        "output" => output
-    ))
-end
-
-"""
-    has_in_dictionary(statement::String)
-
-Check if a statement exists in the dictionary
-"""
-function has_in_dictionary(statement::String)
-    for entry in SEED_DICTIONARY
-        if entry["input"] == statement
-            return true
-        end
-    end
-    return false
-end
-
-"""
-    get_from_dictionary(statement::String)
-
-Get the output for a given input statement from the dictionary
-"""
-function get_from_dictionary(statement::String)
-    for entry in SEED_DICTIONARY
-        if entry["input"] == statement
-            return entry["output"]
-        end
-    end
-    return nothing
-end
-
-function configure_offline_mode(enabled::Bool)
-    CONFIG[:offline_mode] = enabled
-end
-
-function training_mode!(enabled::Bool)
-    CONFIG[:training_mode] = enabled
-end
-
-function training_mode()
-    return CONFIG[:training_mode]
-end
-
-function configure_dictionary_mode(mode::Symbol)
-    if !(mode in [:priority, :only, :disabled])
-        error("Unknown dictionary mode: $mode. Available modes: :priority, :only, :disabled")
-    end
-    CONFIG[:dictionary_mode] = mode
-end
-
-function configure_default_backend(backend::Symbol; kwargs...)
-    if !(backend in [:local, :remote, :huggingface, :github])
-        error("Unknown backend: $backend. Available backends: :local, :remote, :huggingface, :github")
-    end
-    
-    backend_settings = CONFIG[:backend_settings][backend]
-    for (key, value) in kwargs
-        if haskey(backend_settings, key)
-            backend_settings[key] = value
-        else
-            error("Invalid keyword argument '$key' for backend $backend")
-        end
-    end
-    
-    CONFIG[:default_backend] = backend
-end
-
-function configure_github_backend(; kwargs...)
-    github_settings = CONFIG[:backend_settings][:github]
-    for (key, value) in kwargs
-        if haskey(github_settings, key)
-            github_settings[key] = value
-        else
-            error("Invalid keyword argument '$key' for GitHub backend")
-        end
-    end
-end
-
 function process_statement(statement::String; backend=nothing, clear_context=false, kwargs...)
     try
         # Clear context if requested
         if clear_context
-            CONFIG[:context][:history] = []
+            clear_context!()
         end
 
         # Check if this is the first statement in context mode
@@ -402,7 +125,7 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
         debug_print("Context state BEFORE adding user entry: $(CONFIG[:context][:history])")
 
         # Add current statement to history
-        push!(CONFIG[:context][:history], ("user", statement))
+        append_entry("user", statement)
         debug_print("Context state AFTER adding user entry: $(CONFIG[:context][:history])")
         
         # Keep only last N interactions
@@ -423,7 +146,7 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
             if has_in_dictionary(statement)
                 response = get_from_dictionary(statement)
                 clean_response = clean_response_text(response)
-                push!(CONFIG[:context][:history], ("assistant", clean_response))
+                append_entry("assistant", clean_response)
                 return response
             end
         end
@@ -512,148 +235,71 @@ function process_statement(statement::String; backend=nothing, clear_context=fal
                 headers = Dict("Content-Type" => "application/json"),
                 body = JSON.json(data)
             )
+            debug_print("Response status: $(response.status)")
             
-            if response.status != 200
-                error("HTTP error: $(response.status)\nResponse: $(String(response.body))")
-            end
-
-            response_body = JSON.parse(String(response.body))
-            debug_print("Response body: $response_body")
-            debug_print("Available keys: $(keys(response_body))")
-
+            # Parse response and handle different response formats
+            json_response = JSON.parse(String(response.body))
+            debug_print("JSON response: $json_response")
+            debug_print("Available keys: $(keys(json_response))")
+            
             # Try to get the response text from different possible keys
-            if haskey(response_body, "content")
-                response_text = response_body["content"]
-            elseif haskey(response_body, "text")
-                response_text = response_body["text"]
-            elseif haskey(response_body, "generated_text")
-                response_text = response_body["generated_text"]
-            elseif haskey(response_body, "response")
-                response_text = response_body["response"]
+            if haskey(json_response, "content")
+                code = json_response["content"]
+            elseif haskey(json_response, "text")
+                code = json_response["text"]
+            elseif haskey(json_response, "generated_text")
+                code = json_response["generated_text"]
+            elseif haskey(json_response, "response")
+                code = json_response["response"]
             else
                 # If no text key found, try to get the response from the body directly
-                response_text = String(response.body)
+                code = String(response.body)
             end
-
-            # Add response to history
-            clean_response = clean_response_text(response_text)
-            push!(CONFIG[:context][:history], ("assistant", clean_response))
-
-            # Clean the response to make it directly executable
-            response_code = response_text
-            response_code = replace(response_code, r"```oscar\n?" => "")
-            response_code = replace(response_code, r"``\n?" => "")
-            response_code = replace(response_code, r"``\n?" => "")
-            response_code = replace(response_code, r"```
-?" => "")
-            response_code = replace(response_code, r"`\n?" => "")
-            response_code = replace(response_code, r"\`" => "")
-
-            # Remove language indicators and extra whitespace
-            response_code = replace(response_code, r"\s*Oscar\s*" => "")
-            response_code = replace(response_code, r"\s*oscar\s*" => "")
+            debug_print("Extracted code: $code")
+            
+            # Clean the code
+            response_code = clean_response_text(code)
+            debug_print("Cleaned code: $response_code")
+            
+            # Validate the code
+            validation_error = validate_oscar_code(response_code)
+            if validation_error !== nothing
+                error("Generated Oscar code is invalid: $validation_error")
+            end
+            debug_print("Code validation successful")
+            
+            # Clean up any remaining whitespace
             response_code = strip(response_code)
 
-            # Handle string literals and escapes
-            response_code = replace(response_code, r"\"\"\".*?\"\"\""s => "")  # Remove string literals
-            response_code = replace(response_code, r"#.*?\n" => "")  # Remove comments
-            response_code = replace(response_code, r"print\(.*?\)" => "")  # Remove print statements
-            response_code = replace(response_code, r"result =" => "")  # Remove result assignments
-            response_code = replace(response_code, r"\nresult" => "")  # Remove result assignments
-            response_code = replace(response_code, r"statement" => "x^3-1")  # Replace statement variable
-            response_code = replace(response_code, r"\$statement" => "x^3-1")  # Replace statement variable
-            response_code = strip(response_code)
-
-            # Try to parse each line of the code to check if it's valid Oscar syntax
-            try
-                # Split the code into lines
-                lines = split(strip(response_code), '\n')
-                
-                # Validate each line
-                debug_print("Validating code lines")
-                for line in lines
-                    if !isempty(strip(line))
-                        parsed_line = Meta.parse(line)
-                        debug_print("Parsed line: $line -> $parsed_line")
-                        if !isa(parsed_line, Expr)
-                            error("Generated code contains invalid expression: $line")
-                        end
-                    end
-                end
-                
-                # Check if the code contains any undefined variables
-                vars = filter(x -> !isa(x, Symbol), collect(Base.names(Main)))
-                code_vars = unique([x for x in vars if occursin(string(x), response_code)])
-                if !isempty(code_vars)
-                    error("Generated code contains undefined variables: $(join(code_vars, ", "))")
-                end
-            catch e
-                error("Could not parse Oscar code: $response_code. Error: $e")
-            end
-
-            # If the code ends with print statement, extract just the expression
-            print_match = match(r"print\((.*)\)$", response_code)
-            if print_match !== nothing
-                response_code = print_match.captures[1]
-            end
-
-            # Handle training mode
-            if CONFIG[:training_mode]
-                println("\nGenerated Oscar code:")
-                println("-------------------")
-                println(response_code)
-                println("\nWould you like to add this to the training dictionary? (y/n)")
-                if readline() == "y"
-                    add_to_dictionary(statement, String(response_code))
-                    println("Successfully added to training dictionary!")
-                end
-            end
-
-            return String(response_code)
+            # Return the cleaned code
+            return response_code
         catch e
-            error("Error processing statement: $e")
+            error("Could not parse Oscar code: $(response.status). Error: $e")
+        finally
+            debug_print("API request processing completed")
         end
-
-        debug_print_response(response)
-
-        if response.status != 200
-            error("HTTP error: $(response.status)\nResponse: $(String(response.body))")
-        end
-
-        response_body = JSON.parse(String(response.body))
-        debug_print("Response body: $response_body")  # Add debug to see the full response
-        debug_print("Available keys: $(keys(response_body))")  # Add debug to see available keys
-        
-        # Try to get the response text from different possible keys
-        if haskey(response_body, "content")
-            response_text = response_body["content"]
-        elseif haskey(response_body, "text")
-            response_text = response_body["text"]
-        elseif haskey(response_body, "generated_text")
-            response_text = response_body["generated_text"]
-        else
-            error("Could not find response text in API response: $(response_body)")
-        end
-
-        # Add response to history
-        push!(CONFIG[:context][:history], ("assistant", response_text))
-
-    # Clean the response
-    response_code = clean_response(response)
-    
-    if CONFIG[:training_mode]
-        println("\nGenerated Oscar code:")
-        println("-------------------")
-        println(response_code)
-        println("-------------------")
-        println("\nWould you like to add this to the training dictionary? (y/n)")
-        if readline() == "y"
-            add_to_dictionary(statement, String(response_code))  # Convert to String
-            println("Successfully added to training dictionary!")
-        end
+    catch e
+        error("Error processing API response: $e")
+    finally
+        debug_print("process_statement function completed")
     end
+end
 
-    return response_code
+# Call training mode function if needed
+if CONFIG[:training_mode]
+    process_training_mode(String(response.status), statement)
+end
+
+function process_training_mode(response_code::String, statement::String)
+    println("\nGenerated Oscar code:")
+    println("-------------------")
+    println(response_code)
+    println("-------------------")
+    println("\nWould you like to add this to the training dictionary? (y/n)")
+    if readline() == "y"
+        add_to_dictionary(statement, String(response_code))
+        println("Successfully added to training dictionary!")
+    end
 end
 
 end # module OscarAICoder

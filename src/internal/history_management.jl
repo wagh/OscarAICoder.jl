@@ -30,9 +30,11 @@ Add a new entry to the conversation history.
 - `content::String`: The content of the entry
 - `is_first_statement::Bool`: Whether this is the first statement in a sequence
 """
-function append_entry(role::String, content::String; is_first_statement::Bool=false)
+function append_entry(role::String, content::Union{String, SubString{String}}; is_first_statement::Bool=false)
+    # Convert SubString to String if needed
+    content_str = String(content)
     new_id = isempty(HISTORY) ? 1 : maximum(e.id for e in HISTORY) + 1
-    entry = HistoryEntry(new_id, role, content, time(), is_first_statement)
+    entry = HistoryEntry(new_id, role, content_str, time(), is_first_statement)
     push!(HISTORY, entry)
 end
 
