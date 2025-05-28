@@ -3,10 +3,7 @@ MANUAL = $(DOC_DIR)/manual.tex
 PDF = $(DOC_DIR)/manual.pdf
 
 # Test directories
-TEST_DIRS = $(DOC_DIR)/tst/commutative_algebra \
-             $(DOC_DIR)/tst/algebraic_geometry \
-             $(DOC_DIR)/tst/calculus \
-             $(DOC_DIR)/tst/linear_algebra
+TEST_DIRS = test/unit test/integration
 
 # Test files
 TEST_FILES = $(shell find $(TEST_DIRS) -name "*.jl")
@@ -27,24 +24,12 @@ $(PDF): $(MANUAL)
 	@cd $(DOC_DIR) && pdflatex -interaction=nonstopmode manual.tex
 	@echo "Documentation built successfully: $(PDF)"
 
-test: $(TEST_FILES)
-execute: $(TEST_FILES)
-	@echo "Running execute tests..."
-	@for test_file in $(TEST_DIRS)/*/*_tests.jl; do \
-		echo "Running execute test: $$test_file"; \
-		julia $$test_file > $$test_file.out 2>&1; \
-		diff $$test_file.out $$test_file.expected 2>/dev/null || \
-		(echo "Execute test failed: $$test_file" && cat $$test_file.out && exit 1); \
-	done
-	@echo "All execute tests passed successfully"
+test:
 	@echo "Running tests..."
-	@for test_file in $(TEST_FILES); do \
-		echo "Running test: $$test_file"; \
-		julia $$test_file > $$test_file.out 2>&1; \
-		diff $$test_file.out $$test_file.expected 2>/dev/null || \
-		(echo "Test failed: $$test_file" && cat $$test_file.out && exit 1); \
-	done
+	@julia test/runtests.jl
 	@echo "All tests passed successfully"
+
+.PHONY: test
 
 clean:
 	@echo "Cleaning up..."
