@@ -19,7 +19,7 @@ include("core/process.jl")
 # Export public API
 export process_statement, execute_statement, execute_statement_with_format
 export SeedDictionary, CONFIG, get_config, set_config, get_backend_settings, set_backend_settings, get_training_mode, set_training_mode, get_dictionary_mode, set_dictionary_mode, get_debug_mode, set_debug_mode, SEED_DICTIONARY
-export add_entry!, delete_entry!, clear_entries!, edit_entry!, save_history, load_history, get_entries, get_entry, current_timestamp, HistoryStore, HistoryEntry
+export add_entry!, delete_entry!, clear_entries!, edit_entry!, save_history, load_history, get_entries, get_entry, display_history, current_timestamp, HistoryStore, HistoryEntry
 
 # Re-export functions from Core and Config
 process_statement = Core.process_statement
@@ -36,6 +36,8 @@ set_debug_mode = Config.set_debug_mode
 
 # Re-export functions from History
 get_entries = History.get_entries
+delete_entry! = History.delete_entry!
+display_history = History.display_history
 
 # Re-export SEED_DICTIONARY
 SEED_DICTIONARY = SeedDictionary.SEED_DICTIONARY

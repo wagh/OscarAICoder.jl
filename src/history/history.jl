@@ -67,6 +67,86 @@ function get_entries()
     return Config.CONFIG.history_store.entries
 end
 
+function wrap_text(text::String, width::Int=70, indent::Int=6)
+    lines = []
+    current_line = "" * " "^(indent+2)  # Start with proper indentation
+    
+    # Split text into words
+    words = split(text)
+    
+    for word in words
+        # If adding this word would exceed width, start a new line
+        if length(current_line) + length(word) + 1 > width
+            push!(lines, current_line)
+            current_line = " "^(indent+2) * word  # Start new line with proper indentation
+        else
+            if !isempty(current_line)
+                current_line *= " "
+            end
+            current_line *= word
+        end
+    end
+    
+    # Add the last line if it exists
+    if !isempty(current_line)
+        push!(lines, current_line)
+    end
+    
+    return lines
+end
+
+function format_output(text::String, indent::Int=6)
+    # Split by semicolons or newlines
+    parts = split(text, r"[;\n]")
+    lines = []
+    
+    for part in parts
+        # Add proper indentation
+        if !isempty(part)
+            push!(lines, " "^(indent+2) * part * ";")
+        end
+    end
+    
+    return lines
+end
+
+function display_history(entries::Vector{HistoryEntry})
+    for (i, entry) in enumerate(entries)
+        println("[$i]")
+        println("  time: \"$(entry.timestamp)\"")
+        
+        # Format original statement
+        println("  user:")
+        for line in wrap_text(entry.original_statement, 70, 6)
+            println(line)
+        end
+        
+        # Format generated code
+        println("  output:")
+        for line in format_output(entry.generated_code, 6)
+            println(line)
+        end
+        
+        println("  is_valid_code: $(entry.is_valid)")
+        println("  code_error: $(entry.validation_error)")
+        println()
+    end
+end
+
+function display_history()
+    entries = get_entries()
+    display_history(entries)
+end
+
+function display_history(idx::Int)
+    entries = get_entries()
+    if idx < 1 || idx > length(entries)
+        println("Invalid index: $idx. Must be between 1 and $(length(entries))")
+        return
+    end
+    display_history([entries[idx]])
+end
+
 function get_entry(idx::Int)
     return Config.CONFIG.history_store.entries[idx]
 end
