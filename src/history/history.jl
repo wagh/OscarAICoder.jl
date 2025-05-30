@@ -2,35 +2,36 @@ module History
 
 using Dates
 using ..Types
+using ..Config
 
 # History management functions
-function add_entry!(store::HistoryStore, original::String, generated::String, is_valid::Bool, error::Union{Nothing, String}=nothing)
+function add_entry!(timestamp::String, original::String, generated::String, is_valid::Bool, validation_error::Union{Nothing,String}=nothing)
     entry = HistoryEntry(
-        Dates.format(now(), "yyyy-mm-dd_HH-MM-SS"),
+        timestamp,
         original,
         generated,
         is_valid,
-        error
+        validation_error
     )
-    push!(store.entries, entry)
-    store.current_index = length(store.entries)
+    push!(Config.CONFIG.history_store.entries, entry)
+    Config.CONFIG.history_store.current_index = length(Config.CONFIG.history_store.entries)
 end
 
-function delete_entry!(store::HistoryStore, idx::Int)
-    deleteat!(store.entries, idx)
-    if store.current_index ≥ idx
-        store.current_index = min(store.current_index - 1, length(store.entries))
+function delete_entry!(idx::Int)
+    deleteat!(Config.CONFIG.history_store.entries, idx)
+    if Config.CONFIG.history_store.current_index ≥ idx
+        Config.CONFIG.history_store.current_index = min(Config.CONFIG.history_store.current_index - 1, length(Config.CONFIG.history_store.entries))
     end
 end
 
-function clear_entries!(store::HistoryStore)
-    empty!(store.entries)
-    store.current_index = 0
+function clear_entries!()
+    empty!(Config.CONFIG.history_store.entries)
+    Config.CONFIG.history_store.current_index = 0
 end
 
-function edit_entry!(store::HistoryStore, idx::Int, original::String, generated::String)
-    store.entries[idx] = HistoryEntry(
-        store.entries[idx].timestamp,
+function edit_entry!(idx::Int, original::String, generated::String)
+    Config.CONFIG.history_store.entries[idx] = HistoryEntry(
+        Config.CONFIG.history_store.entries[idx].timestamp,
         original,
         generated,
         true,
@@ -38,9 +39,9 @@ function edit_entry!(store::HistoryStore, idx::Int, original::String, generated:
     )
 end
 
-function save_history(store::HistoryStore, filename::String)
+function save_history(filename::String)
     open(filename, "w") do io
-        JSON.print(io, store.entries)
+        JSON.print(io, Config.CONFIG.history_store.entries)
     end
 end
 
@@ -59,15 +60,15 @@ function load_history(filename::String)
         end
         store.current_index = length(store.entries)
     end
-    return store
+    Config.CONFIG.history_store = store
 end
 
-function get_entries(store::HistoryStore)
-    return store.entries
+function get_entries()
+    return Config.CONFIG.history_store.entries
 end
 
-function get_entry(store::HistoryStore, idx::Int)
-    return store.entries[idx]
+function get_entry(idx::Int)
+    return Config.CONFIG.history_store.entries[idx]
 end
 
 function current_timestamp()

@@ -1,7 +1,22 @@
 using OscarAICoder
+using OscarAICoder.TestHelpers
+using OscarAICoder.Validator
+using OscarAICoder.History
 using OscarAICoder.Config
 
-statement = "Factor the polynomial x^2 - 5x + 6 over the integers."
+include("unit/validator_tests.jl")
+include("integration/core_tests.jl")
+
+# Run all tests
+@testset "OscarAICoder Tests" begin
+    @testset "Validator Tests" begin
+        include("unit/validator_tests.jl")
+    end
+    
+    @testset "Core Tests" begin
+        include("integration/core_tests.jl")
+    end
+end
 
 # Test local backend
 try

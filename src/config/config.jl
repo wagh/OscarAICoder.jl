@@ -3,10 +3,11 @@ module Config
 # Configuration types
 @enum BackendType LOCAL REMOTE HUGGINGFACE GITHUB
 
-using ..Constants
+using OscarAICoder.Types
+using OscarAICoder.Constants
 
 export BackendType, LOCAL, REMOTE, HUGGINGFACE, GITHUB
-export CONFIG, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode
+export CONFIG, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore
 
 # Define types first
 struct BackendSettings
@@ -27,6 +28,7 @@ mutable struct ConfigType
     dictionary_mode::Symbol
     context::ContextState
     debug::Bool
+    history_store::HistoryStore
 end
 
 # Global configuration
@@ -51,15 +53,16 @@ const CONFIG = ConfigType(
             [:qwen2_5, :qwen2_5_coder, :oscar_coder]
         ),
         GITHUB => BackendSettings(
-            "https://api.github.com/",
-            "Qwen/Qwen-2.5-Coder",
-            [:qwen2_5, :qwen2_5_coder, :oscar_coder]
+            "https://api.github.com",
+            "github-coder",
+            [:github_coder]
         )
     ),
     false,  # training_mode
-    :enabled,  # dictionary_mode
+    :disabled,  # dictionary_mode
     ContextState([], true),  # context
-    true  # debug
+    false,  # debug
+    HistoryStore()  # history_store
 )
 
 # Configuration functions
