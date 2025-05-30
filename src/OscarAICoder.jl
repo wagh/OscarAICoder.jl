@@ -12,6 +12,7 @@ include("config/config.jl")
 include("debug.jl")
 include("validator/validator.jl")
 include("history/history.jl")
+include("prompts/prompts.jl")
 include("backends/backends.jl")
 include("core/seed_dictionary.jl")
 include("core/process.jl")
@@ -43,7 +44,6 @@ display_history = History.display_history
 SEED_DICTIONARY = SeedDictionary.SEED_DICTIONARY
 
 # Re-export functions from Core
-process_statement = Core.process_statement
 execute_statement = Core.execute_statement
 execute_statement_with_format = Core.execute_statement_with_format
 

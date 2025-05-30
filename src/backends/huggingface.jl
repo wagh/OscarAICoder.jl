@@ -4,6 +4,7 @@ using HTTP, JSON
 using ..Config
 using ..Validator
 using ..Debug
+using ..Prompts
 
 """
     process_statement_huggingface(statement::String; kwargs...)
@@ -17,7 +18,8 @@ Keyword arguments:
 function process_statement_huggingface(statement::String; 
     api_key::String,
     model::String,
-    api_url::String="https://api-inference.huggingface.co/models"
+    api_url::String="https://api-inference.huggingface.co/models",
+    use_history::Bool=true
 )
     debug_print("=== Debugging HuggingFace Backend ===")
     debug_print("Input statement: $statement")
@@ -36,16 +38,8 @@ function process_statement_huggingface(statement::String;
     
     debug_print("No dictionary match found, proceeding with API call")
     
-    # Prepare the prompt
-    prompt = "Translate the following mathematical statement into Oscar code:\n\n"
-    if !Config.CONFIG.training_mode
-        prompt *= "Context:\n"
-        for (original, generated) in Config.CONFIG.context.history
-            prompt *= "Statement: $original\nOscar code: $generated\n"
-        end
-        prompt *= "\n"
-    end
-    prompt *= "Statement: $statement\nOscar code:"
+    # Get the appropriate prompt
+    prompt = Prompts.get_prompt(statement, use_history, Config.CONFIG.training_mode)
     
     debug_print("Final prompt:\n$prompt")
     

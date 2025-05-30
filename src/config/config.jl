@@ -29,6 +29,7 @@ mutable struct ConfigType
     context::ContextState
     debug::Bool
     history_store::HistoryStore
+    base_dir::String
 end
 
 # Global configuration
@@ -53,16 +54,17 @@ const CONFIG = ConfigType(
             [:qwen2_5, :qwen2_5_coder, :oscar_coder]
         ),
         GITHUB => BackendSettings(
-            "https://api.github.com",
-            "github-coder",
-            [:github_coder]
+            "https://api.github.com/repos",
+            "qwen2.5-coder",
+            [:qwen2_5, :qwen2_5_coder, :oscar_coder]
         )
     ),
-    false,  # training_mode
+    true,  # training_mode
     :disabled,  # dictionary_mode
     ContextState([], true),  # context
     false,  # debug
-    HistoryStore()  # history_store
+    HistoryStore([], 0),  # history_store
+    @__DIR__  # base_dir
 )
 
 # Configuration functions

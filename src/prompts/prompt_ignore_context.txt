@@ -1,0 +1,2 @@
+Ignore previous context and generate code based only on the current statement.
+

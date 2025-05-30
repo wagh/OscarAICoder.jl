@@ -4,6 +4,7 @@ using HTTP, JSON
 using ..Config
 using ..Validator
 using ..Debug
+using ..Prompts
 
 const DEFAULT_REPO = "username/repo"
 const DEFAULT_BRANCH = "main"
@@ -23,12 +24,13 @@ Keyword arguments:
 - raw_url: GitHub raw content URL (default: "https://raw.githubusercontent.com")
 """
 function process_statement_github(statement::String; 
-    repo::String,
+    repo::String=DEFAULT_REPO, 
+    branch::String=DEFAULT_BRANCH, 
     token::String,
-    model::String,
-    branch::String=DEFAULT_BRANCH,
-    api_url::String=DEFAULT_API_URL,
-    raw_url::String=DEFAULT_RAW_URL
+    model::String="qwen2.5-coder",
+    api_url::String="https://api.github.com/repos",
+    raw_url::String="https://raw.githubusercontent.com",
+    use_history::Bool=true
 )
     debug_print("=== Debugging GitHub Backend ===")
     debug_print("Input statement: $statement")
@@ -48,16 +50,8 @@ function process_statement_github(statement::String;
     
     debug_print("No dictionary match found, proceeding with API call")
     
-    # Prepare the prompt
-    prompt = "Translate the following mathematical statement into Oscar code:\n\n"
-    if !Config.CONFIG.training_mode
-        prompt *= "Context:\n"
-        for (original, generated) in Config.CONFIG.context.history
-            prompt *= "Statement: $original\nOscar code: $generated\n"
-        end
-        prompt *= "\n"
-    end
-    prompt *= "Statement: $statement\nOscar code:"
+    # Get the appropriate prompt
+    prompt = Prompts.get_prompt(statement, use_history, Config.CONFIG.training_mode)
     
     debug_print("Final prompt:\n$prompt")
     

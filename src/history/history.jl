@@ -1,6 +1,7 @@
 module History
 
 using Dates
+using JSON
 using ..Types
 using ..Config
 

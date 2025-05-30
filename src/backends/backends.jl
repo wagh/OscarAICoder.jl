@@ -3,7 +3,11 @@ module Backends
 using HTTP, JSON
 using ..Config
 using ..Validator
-using OscarAICoder.Debug
+using ..Debug
+using ..Prompts
+
+# Re-export Prompts module
+export Prompts
 
 # Include backend implementations
 include("local.jl")
