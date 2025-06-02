@@ -7,7 +7,7 @@ using OscarAICoder.Types
 using OscarAICoder.Constants
 
 export BackendType, LOCAL, REMOTE, HUGGINGFACE, GITHUB
-export CONFIG, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore
+export CONFIG, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore, set_local_model, get_local_model
 
 # Define types first
 struct BackendSettings
@@ -78,14 +78,49 @@ function set_config(new_config::ConfigType)
     global CONFIG = new_config
 end
 
-function get_backend_settings(backend::BackendType)
-    """Get settings for a specific backend."""
+function get_backend_settings(backend::BackendType=LOCAL)
+    """Get settings for a specific backend. Defaults to LOCAL if not specified."""
     return CONFIG.backend_settings[backend]
 end
 
 function set_backend_settings(backend::BackendType, settings::BackendSettings)
     """Set settings for a specific backend."""
+    # Update the model choices if they're different from the current model
+    if settings.model ∉ settings.model_choices
+        settings.model_choices = [Symbol(settings.model)]
+    end
     CONFIG.backend_settings[backend] = settings
+end
+
+"""
+    set_local_model(model_name::String)
+
+Set the model name for the local backend. The model must be available on your local LLM server.
+"""
+function set_local_model(model_name::String)
+    """Set the model name for the local backend."""
+    # Get current settings
+    current_settings = get_backend_settings(LOCAL)
+    
+    # Create new settings with updated model name
+    new_settings = BackendSettings(
+        current_settings.url,
+        model_name,
+        [Symbol(model_name)]  # Start with just this model in choices
+    )
+    
+    # Update the settings
+    CONFIG.backend_settings[LOCAL] = new_settings
+end
+
+"""
+    get_local_model()
+
+Get the current model name for the local backend.
+"""
+function get_local_model()
+    """Get the current model name for the local backend."""
+    return get_backend_settings(LOCAL).model
 end
 
 function get_training_mode()
