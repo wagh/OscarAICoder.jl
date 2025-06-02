@@ -196,23 +196,32 @@ function execute_statement(oscar_code::Union{String, SubString{String}}=""; clea
         eval("using Oscar")
 
         # Execute the actual Oscar code
-        # result = eval(code_str)
+        results = []
         lines = split(strip(code_str), '\n')
         for line in lines
-            eval(Meta.parse(line))
+            try
+                result = eval(Meta.parse(line))
+                push!(results, result)
+            catch e
+                debug_print("Error executing line: $line")
+                debug_print("Error: $e")
+                throw(e)
+            end
         end
-
+        
         debug_print("Oscar evaluation completed successfully")
         
-        # Clear context if requested
+        # Clear context if requested (Note: Oscar.jl doesn't have a built-in context clearing function)
         if clear_context
-            debug_print("Clearing Oscar context as requested")
-            Oscar.clear_context()
-            debug_print("Oscar context cleared")
+            debug_print("Clearing Oscar context requested but not supported")
         end
         
         debug_print("=== Oscar Execution End ===")
-        # return result
+        
+        # Return the last result if there's only one line, otherwise return all results
+        # return length(results) == 1 ? results[1] : results
+        return results[end]
+
     catch e
         debug_print("=== Oscar Execution Error ===")
         debug_print("Error during Oscar execution: $e")
