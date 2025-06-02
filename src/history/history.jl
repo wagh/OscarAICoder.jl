@@ -47,11 +47,11 @@ function save_history(filename::String)
 end
 
 function load_history(filename::String)
-    store = HistoryStore()
+    entries = Vector{HistoryEntry}()
     open(filename, "r") do io
-        entries = JSON.parse(io)
-        for entry in entries
-            push!(store.entries, HistoryEntry(
+        # Parse JSON and convert to HistoryEntry
+        for entry in JSON.parse(io)
+            push!(entries, HistoryEntry(
                 entry["timestamp"],
                 entry["original_statement"],
                 entry["generated_code"],
@@ -59,9 +59,8 @@ function load_history(filename::String)
                 get(entry, "validation_error", nothing)
             ))
         end
-        store.current_index = length(store.entries)
+        Config.CONFIG.history_store = HistoryStore(entries, length(entries))
     end
-    Config.CONFIG.history_store = store
 end
 
 function get_entries()

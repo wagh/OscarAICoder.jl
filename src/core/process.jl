@@ -8,8 +8,10 @@ using ..Debug
 using ..Types
 using ..SeedDictionary
 using Dates
+using Base.Meta
+using Oscar
 
-export process_statement
+export process_statement, execute_statement, execute_statement_with_format, execute_all_statements
 
 """
     process_statement(statement::String; kwargs...)
@@ -99,7 +101,7 @@ function process_statement(statement::String;
             code = Backends.Local.process_statement_local(
                 statement,
                 model=model,
-                kwargs...
+                clear_context=clear_history
             )
         elseif backend == Config.HUGGINGFACE
             debug_print("Using HuggingFace backend")
@@ -131,14 +133,14 @@ function process_statement(statement::String;
         if Validator.validate_oscar_code(code)
             debug_print("Valid Oscar code generated")
             
-            # Add to history
-            History.add_entry!(string(Dates.now()), statement, code, true)
+            # Convert SubString to String and add to history
+            History.add_entry!(string(Dates.now()), statement, String(code), true, nothing)
             return code
         else
             debug_print("Invalid Oscar code generated")
             
             # Add invalid entry to history
-            History.add_entry!(string(Dates.now()), statement, code, false, "Invalid Oscar code")
+            History.add_entry!(string(Dates.now()), statement, String(code), false, "Invalid Oscar code")
             error("Generated invalid Oscar code")
         end
     catch e
@@ -152,112 +154,96 @@ function process_statement(statement::String;
     end
 end
 
-export process_statement, execute_statement, execute_statement_with_format
+"""
+    execute_all_statements()
 
-using Base.Meta
-using Oscar
-using ..Config
-using ..Debug
+Execute the most recent statement from history.
+"""
+function execute_all_statements()
+    return execute_statement()  # Call the main function with default parameter
+end
 
 """
     execute_statement(oscar_code::String)
 
 Execute Oscar code and return the result.
 """
-function execute_statement(oscar_code::Union{String, SubString{String}}; clear_context=false)
+function execute_statement(oscar_code::Union{String, SubString{String}}=""; clear_context=false)
+    # If no code is provided, use the most recent history entry
+    if isempty(oscar_code)
+        entries = History.get_entries()
+        if isempty(entries)
+            error("No history entries available")
+        end
+        oscar_code = entries[end].generated_code
+    end
+    
     # Convert SubString to String if needed
     code_str = String(oscar_code)
     
     debug_print("Starting Oscar execution")
+    debug_print("Oscar code:\n$code_str")
+    debug_print("Clear context: $clear_context")
     
-    # Execute the code and capture the result
     try
+        debug_print("=== Oscar Execution Start ===")
+        debug_print("Executing Oscar code:")
+        debug_print("""$code_str""")  # Use triple quotes for better formatting
+        
+        # Execute the Oscar code
+        debug_print("Starting Oscar evaluation...")
+        # Ensure Oscar is imported
+        eval("using Oscar")
+
+        # Execute the actual Oscar code
+        # result = eval(code_str)
+        lines = split(strip(code_str), '\n')
+        for line in lines
+            eval(Meta.parse(line))
+        end
+
+        debug_print("Oscar evaluation completed successfully")
+        
         # Clear context if requested
         if clear_context
-            Config.CONFIG.context.history = []
-        end
-
-        # Check if this is the first statement in context mode
-        is_first_statement = isempty(Config.CONFIG.context.history)
-
-        # Add current statement to history
-        push!(Config.CONFIG.context.history, ("user", code_str))
-        
-        # # Keep only last N interactions
-        # if length(Config.CONFIG.context.history) > Config.CONFIG.context.max_history
-        #     Config.CONFIG.context.history = Config.CONFIG.context.history[end-Config.CONFIG.context.max_history+1:end]
-        # end
-
-        # If this is the first statement, don't use history
-        if is_first_statement
-            debug_print("First statement, not using history")
-        else
-            # Process history entries, skipping duplicates
-            processed_code = Set{String}()
-            for (role, code) in Config.CONFIG.context.history
-                if role == "assistant" && !isempty(code) && !in(code, processed_code)
-                    debug_print("Processing history code: $code")
-                    # Split and evaluate each line
-                    lines = split(strip(code), '\n')
-                    for line in lines
-                        if !isempty(strip(line))
-                            eval(Meta.parse(line))
-                        end
-                    end
-                    push!(processed_code, code)
-                end
-            end
+            debug_print("Clearing Oscar context as requested")
+            Oscar.clear_context()
+            debug_print("Oscar context cleared")
         end
         
-        # Split the code into lines and evaluate
-        debug_print("Code: $oscar_code")
-        debug_print("Splitting code into lines")
-        lines = split(strip(oscar_code), '\n')
-        
-        # Evaluate each line separately
-        for line in lines
-            if !isempty(strip(line))
-                eval(Meta.parse(line))
-            end
-        end
-        
-        # Return the last evaluated expression
-        last_result = eval(Meta.parse(lines[end]))
-        
-        # Add the result to history
-        push!(Config.CONFIG.context.history, ("assistant", string(last_result)))
-        
-        return last_result
+        debug_print("=== Oscar Execution End ===")
+        # return result
     catch e
-        error("Error executing Oscar code: $e\nCode: $oscar_code")
+        debug_print("=== Oscar Execution Error ===")
+        debug_print("Error during Oscar execution: $e")
+        debug_print("Error type: $(typeof(e))")
+        debug_print("Stacktrace:")
+        debug_print(stacktrace(catch_backtrace()))
+        rethrow()
     end
 end
 
 """
-    execute_statement(oscar_code::String; output_format=:string)
+    execute_statement_with_format(oscar_code::String; output_format=:string)
 
-Execute Oscar code and return the result in the specified format.
-Available formats: :string, :latex, :html
+Execute Oscar code and return the result in specified format.
+
 """
 function execute_statement_with_format(oscar_code::String; output_format=:string)
     debug_print("=== Starting formatted execution ===")
     debug_print("Input code: $oscar_code")
     debug_print("Output format: $output_format")
     
-    # Load Oscar only when needed
-    Oscar = load_oscar()
-    debug_print("Oscar loaded successfully")
-    
-    # Execute the code and capture the result
     try
-        debug_print("Parsing and evaluating code")
-        # Use eval to execute the code
-        result = eval(Meta.parse(oscar_code))
-        debug_print("Raw result: $result")
+        # Execute the code
+        result = eval(oscar_code)
         
-        # Format the output based on requested format
-        debug_print("Formatting result as $output_format")
-        if output_format == :latex
+        # Format the result based on output_format
+        if output_format == :string
+            formatted_result = string(result)
+            debug_print("String formatted result: $formatted_result")
+            return formatted_result
+        elseif output_format == :latex
             formatted_result = Oscar.latex(result)
             debug_print("LaTeX formatted result: $formatted_result")
             return formatted_result

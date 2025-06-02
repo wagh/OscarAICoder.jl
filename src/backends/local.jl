@@ -20,7 +20,8 @@ Keyword arguments:
 function process_statement_local(statement::String; 
     llm_url::String=DEFAULT_LLM_URL, 
     model::String=DEFAULT_MODEL,
-    use_history::Bool=true
+    use_history::Bool=true,
+    clear_context::Bool=false
 )
     debug_print("=== Debugging Local Backend ===")
     debug_print("Input statement: $statement")
@@ -55,19 +56,54 @@ function process_statement_local(statement::String;
             "model" => model
         )
         
-        # Make the API request
+        # Make the API request and collect all responses
         response = HTTP.post(llm_url, [
             "Content-Type" => "application/json"
         ], JSON.json(body)).body
         
-        # Parse the response
-        result = JSON.parse(String(response))
-        debug_print("API response: $result")
+        # Parse the response - handle streaming JSON objects
+        response_str = String(response)
+        debug_print("Raw API response:\n$response_str")
         
-        # Extract the generated code
-        generated_code = get(result, "response", "")
+        # Collect all response parts
+        generated_code = ""
+        json_objects = split(response_str, r"}\s*{", keepempty=false)
+        
+        # Parse each JSON object and concatenate responses
+        for obj in json_objects
+            try
+                # Add back the missing braces
+                if !startswith(obj, "{")
+                    obj = "{" * obj
+                end
+                if !endswith(obj, "}")
+                    obj = obj * "}"
+                end
+                
+                result = JSON.parse(obj)
+                debug_print("Parsed JSON object: $result")
+                
+                # Get the response from this object and append to generated code
+                code = get(result, "response", "")
+                generated_code *= code
+            catch e
+                debug_print("Error parsing JSON object: $e")
+            end
+        end
+        
+        # Remove any trailing whitespace or newlines
+        generated_code = strip(generated_code)
+        
+        if isempty(generated_code)
+            error("No valid response found in API response")
+        end
         debug_print("Generated Oscar code:\n$generated_code")
         
+        # Clear Oscar context if requested
+        if clear_context
+            Oscar.clear_context()
+        end
+
         # Validate the generated code
         if Validator.validate_oscar_code(generated_code)
             return generated_code

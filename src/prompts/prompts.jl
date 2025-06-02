@@ -13,7 +13,7 @@ Get the appropriate prompt for the given statement and history usage.
 """
 function get_prompt(statement::String, use_history::Bool, training_mode::Bool)
     # Read base prompt
-    base_prompt = read("$(Config.CONFIG.base_dir)/src/prompts/prompt_base.txt", String)
+    base_prompt = read("$(Config.CONFIG.base_dir)/prompts/prompt_base.txt", String)
     
     # Get history entries
     history_entries = History.get_entries()
@@ -24,7 +24,7 @@ function get_prompt(statement::String, use_history::Bool, training_mode::Bool)
         prompt = base_prompt * "Statement: $statement\nOscar code:\n"
     elseif use_history
         # Use history - include previous context
-        context = read("$(Config.CONFIG.base_dir)/src/prompts/prompt_context.txt", String)
+        context = read("$(Config.CONFIG.base_dir)/prompts/prompt_context.txt", String)
         if !training_mode
             for entry in history_entries
                 context *= "Statement: $(entry.original_statement)\nOscar code: $(entry.generated_code)\n\n"
@@ -33,7 +33,7 @@ function get_prompt(statement::String, use_history::Bool, training_mode::Bool)
         prompt = base_prompt * context * "Statement: $statement\nOscar code:\n"
     else
         # Don't use history - explicitly tell LLM to ignore context
-        ignore_context = read("$(Config.CONFIG.base_dir)/src/prompts/prompt_ignore_context.txt", String)
+        ignore_context = read("$(Config.CONFIG.base_dir)/prompts/prompt_ignore_context.txt", String)
         prompt = base_prompt * ignore_context * "Statement: $statement\nOscar code:\n"
     end
 

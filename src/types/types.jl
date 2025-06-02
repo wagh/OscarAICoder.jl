@@ -15,6 +15,9 @@ mutable struct HistoryStore
 
     # Constructor with empty entries
     HistoryStore() = new(Vector{HistoryEntry}(), 0)
+    
+    # Constructor with specific entries and index
+    HistoryStore(entries::Vector{HistoryEntry}, current_index::Int) = new(entries, current_index)
 end
 
 # Global history store

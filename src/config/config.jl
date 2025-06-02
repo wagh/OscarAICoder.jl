@@ -63,8 +63,8 @@ const CONFIG = ConfigType(
     :disabled,  # dictionary_mode
     ContextState([], true),  # context
     false,  # debug
-    HistoryStore([], 0),  # history_store
-    @__DIR__  # base_dir
+    HistoryStore(Vector{HistoryEntry}(), 0),  # history_store
+    dirname(@__DIR__)  # base_dir
 )
 
 # Configuration functions
