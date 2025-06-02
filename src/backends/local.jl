@@ -99,11 +99,6 @@ function process_statement_local(statement::String;
         end
         debug_print("Generated Oscar code:\n$generated_code")
         
-        # Clear Oscar context if requested
-        if clear_context
-            Oscar.clear_context()
-        end
-
         # Validate the generated code
         if Validator.validate_oscar_code(generated_code)
             return generated_code

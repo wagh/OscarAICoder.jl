@@ -31,7 +31,7 @@ function process_statement(statement::String;
     api_key::Union{String,Nothing}=nothing,
     token::Union{String,Nothing}=nothing,
     use_history::Bool=true,
-    clear_history::Bool=false,
+    clear_context::Bool=false,
     kwargs...
 )
     # If no model specified, use the configured model from backend settings
@@ -53,7 +53,7 @@ function process_statement(statement::String;
     debug_print("Selected model: $model")
     
     # Handle history options
-    if clear_history
+    if clear_context
         Config.CONFIG.context.history = []
         Config.CONFIG.context.is_first_statement = true
         debug_print("History cleared before processing")
@@ -101,7 +101,7 @@ function process_statement(statement::String;
             code = Backends.Local.process_statement_local(
                 statement,
                 model=model,
-                clear_context=clear_history
+                clear_context=clear_context
             )
         elseif backend == Config.HUGGINGFACE
             debug_print("Using HuggingFace backend")
@@ -133,9 +133,12 @@ function process_statement(statement::String;
         if Validator.validate_oscar_code(code)
             debug_print("Valid Oscar code generated")
             
-            # Convert SubString to String and add to history
+            # The code is already formatted from the backend
+            debug_print("Received formatted Oscar code:\n$code")
+            
+            # Add code to history
             History.add_entry!(string(Dates.now()), statement, String(code), true, nothing)
-            return code
+            return String(code)
         else
             debug_print("Invalid Oscar code generated")
             
