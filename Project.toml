@@ -1,11 +1,22 @@
 name = "OscarAICoder"
-uuid = "12345678-90ab-cdef-1234-567890abcdef"
+uuid = "e8d82a4c-1234-5678-90ab-cdef12345678"
 authors = ["VInay Wagh <waghoba@gmail.com>"]
 version = "0.1.0"
 
 [deps]
-Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-JSON = "682c06a0-de6a-54ab-a142-c8b1cf750a54"
 Oscar = "f1435218-dba5-11e9-1e4d-f1a5fab5fc13"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+
+[compat]
+HTTP = "^1.9"
+Oscar = "^1.3"
+JSON = "^0.21"
+Dates = "^1.1"
+
+[extras]
 Test = "8dfed614-e28c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
