@@ -2,52 +2,85 @@
 
 A Julia package that translates English mathematical statements into Oscar code using various LLM backends.
 
-## Features
-- `process_statement(statement::String; backend=:local)` — converts English math statements to Oscar code.
-- Context management functions:
-  - `get_context([pretty=true])` — get current conversation context
-  - `save_context([filename])` — save context to a file
-  - `load_context(filename; clear_current=true)` — load context from a file
-  - `set_save_dir(dir)` — set directory for saved contexts
-- Multiple backend options:
-  - Local LLM (default): Connects to a local LLM server (e.g., Ollama)
-  - Remote LLM: Connects to a remote Ollama server
-  - GitHub-hosted LLM: Uses models hosted in GitHub repositories
-  - Hugging Face: Uses Hugging Face's model API
-- Built-in dictionary of common mathematical statements
-- Configurable dictionary usage modes
+## Quick Start
 
-## Setup Instructions
+1. Install the package:
+```julia
+import Pkg
+Pkg.add(path="/path/to/OscarAICoder")
+```
 
-### 1. Basic Requirements
+2. Basic usage:
+```julia
+using OscarAICoder
+
+# Process a mathematical statement
+oscar_code = process_statement("Find the roots of x^2 - 4x + 4")
+
+# Execute the generated code
+result = execute_statement(oscar_code)
+```
+
+## Installation
+
+### Basic Requirements
 - Julia 1.6 or later
 - Oscar.jl package
 - HTTP.jl and JSON.jl packages
 
-### 2. Setting Up LLM Backends
+### Setting Up LLM Backends
 
 #### Local LLM Server (Recommended)
 1. Install Ollama:
-   - Download the setup script:
-   ```bash
-   wget https://raw.githubusercontent.com/wagh/OscarAICoder.jl/main/setup_ollama.sh
-   chmod +x setup_ollama.sh
-   ```
-   - Run the setup script:
-   ```bash
-   ./setup_ollama.sh
-   ```
-   - The script will:
-     - Check if Ollama is installed
-     - Install Ollama if needed
-     - Start the Ollama server
-     - Pull the required model (qwen2.5-coder)
+```bash
+wget https://raw.githubusercontent.com/wagh/OscarAICoder.jl/main/setup_ollama.sh
+chmod +x setup_ollama.sh
+./setup_ollama.sh
+```
 
-2. After installation, the local backend will be ready to use:
-   ```julia
-   using OscarAICoder
-   oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers.")
-   ```
+2. After installation:
+```julia
+using OscarAICoder
+oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers.")
+```
+
+## Main Functions
+
+### `process_statement(statement::String; kwargs...)`
+- Converts English math statements to Oscar code
+- Supports multiple backends (LOCAL, REMOTE, HUGGINGFACE, GITHUB)
+- Can use context/history for better results
+
+### `execute_statement(oscar_code::String; kwargs...)`
+- Executes Oscar code and returns results
+- Handles context management
+
+### `execute_all_statements()`
+- Executes the most recent statement from history
+
+## Advanced Features
+
+- Dictionary mode for faster processing of common statements
+- Debug mode for detailed logging
+- Multiple backend support
+- History management
+- Code validation
+
+## Documentation
+
+For detailed documentation, including:
+- Mathematical examples
+- Advanced usage
+- Configuration options
+- Error handling
+- Validation rules
+- Backend-specific configurations
+
+Please refer to the [full manual](doc/manual.pdf) (PDF format).
+
+## Support
+
+For issues and support, please check the documentation or open an issue on the repository.
 
 #### Remote Ollama Server
 1. Ensure you have access to a remote Ollama server

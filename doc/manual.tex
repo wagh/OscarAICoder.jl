@@ -142,15 +142,120 @@ The package consists of several modules that work together to provide a seamless
     \item[\modname{Execute}] Manages code execution and result formatting
 \end{description}
 
-\section{Installation}
+\section{Quick Start}
+\label{sec:quickstart}
+
+\subsection{Basic Installation}
 \label{sec:installation}
 
 To install \modname{OscarAICoder.jl}, use the Julia package manager:
 
 \begin{lstlisting}
 using Pkg
-Pkg.add("OscarAICoder")
+Pkg.add(path="/path/to/OscarAICoder")
 \end{lstlisting}
+
+\subsection{Basic Usage}
+\label{sec:basicusage}
+
+\subsubsection{Processing a Statement}
+To convert a mathematical statement to Oscar code:
+
+\begin{lstlisting}
+using OscarAICoder
+
+# Process a mathematical statement
+oscar_code = process_statement("Find the roots of x^2 - 4x + 4")
+\end{lstlisting}
+
+\subsubsection{Executing Code}
+To execute the generated Oscar code:
+
+\begin{lstlisting}
+# Execute the code
+result = execute_statement(oscar_code)
+\end{lstlisting}
+
+\subsubsection{Using History}
+To execute the most recent statement from history:
+
+\begin{lstlisting}
+# Execute the most recent statement
+result = execute_all_statements()
+\end{lstlisting}
+
+\section{Installation}
+\label{sec:installation_details}
+
+\subsection{Basic Requirements}
+\begin{itemize}
+    \item Julia 1.6 or later
+    \item Oscar.jl package
+    \item HTTP.jl and JSON.jl packages
+\end{itemize}
+
+\subsection{Setting Up LLM Backends}
+
+\subsubsection{Local LLM Server (Recommended)}
+1. Install Ollama:
+\begin{lstlisting}
+wget https://raw.githubusercontent.com/wagh/OscarAICoder.jl/main/setup_ollama.sh
+chmod +x setup_ollama.sh
+./setup_ollama.sh
+\end{lstlisting}
+
+2. After installation:
+\begin{lstlisting}
+using OscarAICoder
+oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers.")
+\end{lstlisting}
+
+\subsubsection{Remote Backends}
+\begin{itemize}
+    \item Hugging Face
+    \item GitHub
+    \item Remote Ollama server
+\end{itemize}
+
+\subsection{Configuration}
+\begin{itemize}
+    \item Backend settings
+    \item Dictionary mode
+    \item Debug mode
+    \item Context management
+\end{itemize}
+
+\section{Support}
+\label{sec:support}
+
+\subsection{Documentation}
+For detailed documentation, including:
+\begin{itemize}
+    \item Mathematical examples
+    \item Advanced usage
+    \item Configuration options
+    \item Error handling
+    \item Validation rules
+    \item Backend-specific configurations
+\end{itemize}
+
+\subsection{Getting Help}
+\begin{itemize}
+    \item Check the documentation first
+    \item Open an issue on the repository for bugs and feature requests
+    \item For usage questions, check the examples section
+    \item For technical support, contact the maintainers
+\end{itemize}
+
+\subsection{Common Issues}
+\begin{itemize}
+    \item Backend connection issues
+    \item Invalid Oscar code generation
+    \item Context management problems
+    \item Configuration errors
+\end{itemize}
+
+
 
 \section{Basic Usage}
 \label{sec:basic_usage}
