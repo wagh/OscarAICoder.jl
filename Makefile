@@ -33,9 +33,14 @@ test:
 
 clean:
 	@echo "Cleaning up..."
-	@rm -f *.{aux,bbl,blg,brf,css,html,idx,ilg,ind,js,lab,log,out,pdf,pnr,six,toc,txt,xml,xml.bib}
-	@rm -f $(DOC_DIR)/*.{aux,bbl,blg,brf,css,html,idx,ilg,ind,js,lab,log,out,pdf,pnr,six,tex,toc,txt,xml,xml.bib}
+	@rm -f $(DOC_DIR)/manual.aux
+	@rm -f $(DOC_DIR)/manual.bbl
+	@rm -f $(DOC_DIR)/manual.blg
+	@rm -f $(DOC_DIR)/manual.idx
+	@rm -f $(DOC_DIR)/manual.ilg
+	@rm -f $(DOC_DIR)/manual.ind
+	@rm -f $(DOC_DIR)/manual.log
+	@rm -f $(DOC_DIR)/manual.out
+	@rm -f $(DOC_DIR)/manual.toc
 	@rm -f $(PDF)
-	@rm -f $(DOC_DIR)/tst/*/*.out
-	@rm -f $(DOC_DIR)/tst/*/*.log
 	@echo "Cleanup complete"
