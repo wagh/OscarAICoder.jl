@@ -25,6 +25,17 @@ Keyword arguments:
 - use_history: Bool (default: true) - whether to use history/context
 - clear_history: Bool (default: false) - whether to clear history before processing
 """
+#
+# Main function to process a user statement and generate Oscar code
+# Arguments:
+# - statement: The user input statement to process
+# - backend: Which backend to use for code generation
+# - model: Specific model to use (optional)
+# Returns:
+# - Generated Oscar code as a string
+# Throws:
+# - ErrorException if code generation fails
+#
 function process_statement(statement::String; 
     backend::Config.BackendType=Config.CONFIG.default_backend,
     model::String="",
@@ -162,6 +173,13 @@ end
 
 Execute the most recent statement from history.
 """
+#
+# Execute the most recent statement from history
+# Returns:
+# - Result of executing the most recent statement
+# Throws:
+# - ErrorException if no history entries are available
+#
 function execute_all_statements()
     return execute_statement()  # Call the main function with default parameter
 end
@@ -171,6 +189,16 @@ end
 
 Execute Oscar code and return the result.
 """
+#
+# Execute Oscar code and return the result
+# Arguments:
+# - oscar_code: The Oscar code to execute
+# - clear_context: Whether to clear the execution context
+# Returns:
+# - Result of executing the Oscar code
+# Throws:
+# - ErrorException if execution fails
+#
 function execute_statement(oscar_code::Union{String, SubString{String}}=""; clear_context=false)
     # If no code is provided, use the most recent history entry
     if isempty(oscar_code)

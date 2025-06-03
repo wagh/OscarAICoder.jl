@@ -6,7 +6,15 @@ using ..Validator
 using ..Debug
 using ..Prompts
 
+#
+# Default URL for the local LLM server
+# Uses Ollama's default API endpoint
+#
 const DEFAULT_LLM_URL = "http://localhost:11434/api/generate"
+#
+# Default model for code generation
+# Uses Qwen's coder model optimized for code generation
+#
 const DEFAULT_MODEL = "qwen2.5-coder"
 
 """

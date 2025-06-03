@@ -6,10 +6,31 @@ using ..Debug
 using ..Config
 
 # Constants
+#
+# Set of valid Oscar identifiers
+# Used to validate variable names against Oscar's namespace
+#
 const OSCAR_IDENTIFIERS = names(Oscar, all=false)
+#
+# Set of currently declared variables
+# Maintains state of variable declarations during validation
+#
 const declared_vars = Set{Symbol}()
 
 # Helper functions
+#
+# Collect all variable declarations from an expression
+# Arguments:
+# - expr: Expression to analyze
+# - vars: Set to store collected variables
+# Handles:
+# - Regular assignments
+# - Polynomial ring declarations
+# - For loop variables
+# - Tuple declarations
+# Uses:
+# - Debug logging for tracking variable collection
+#
 function collect_declarations(expr, vars::Set{Symbol})
     debug_print("Processing declaration expression: $(string(expr))")
     
@@ -55,19 +76,6 @@ function collect_declarations(expr, vars::Set{Symbol})
             for subexpr in expr.args
                 collect_declarations(subexpr, vars)
             end
-        end
-    else
-        debug_print("Expression is not an Expr: $(typeof(expr))")
-    end
-end
-
-function collect_lhs_vars(expr, vars::Set{Symbol})
-    if expr isa Symbol
-        push!(vars, expr)
-    elseif expr isa Expr && expr.head == :tuple
-        for elem in expr.args
-            collect_lhs_vars(elem, vars)
-        end
     end
 end
 

@@ -1,6 +1,13 @@
 module Config
 
 # Configuration types
+#
+# Enum representing different backend types for code generation
+# - LOCAL: Uses local model (e.g., Ollama)
+# - REMOTE: Uses remote API (e.g., OpenAI)
+# - HUGGINGFACE: Uses HuggingFace models
+# - GITHUB: Uses GitHub Copilot
+#
 @enum BackendType LOCAL REMOTE HUGGINGFACE GITHUB
 
 using OscarAICoder.Types
@@ -10,17 +17,42 @@ export BackendType, LOCAL, REMOTE, HUGGINGFACE, GITHUB
 export CONFIG, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore, set_local_model, get_local_model
 
 # Define types first
+#
+# Configuration settings for a specific backend
+# Fields:
+# - url: API endpoint URL for remote backends
+# - model: Name of the model to use
+# - model_choices: List of available model choices for this backend
+#
 struct BackendSettings
     url::String
     model::String
     model_choices::Vector{Symbol}
 end
 
+#
+# Maintains the context state during code generation
+# Fields:
+# - history: List of previous (statement, code) pairs
+# - is_first_statement: Flag indicating if this is the first statement in a session
+#
 mutable struct ContextState
     history::Vector{Tuple{String, String}}
     is_first_statement::Bool
 end
 
+#
+# Global configuration type for the code generation system
+# Fields:
+# - default_backend: Default backend to use for code generation
+# - backend_settings: Configuration settings for each backend type
+# - training_mode: Flag indicating if system is in training mode
+# - dictionary_mode: Mode for dictionary lookup (e.g., :full, :partial)
+# - context: Maintains session context
+# - debug: Debug mode flag
+# - history_store: Stores history of generated code
+# - base_dir: Base directory for the system
+#
 mutable struct ConfigType
     default_backend::BackendType
     backend_settings::Dict{BackendType, BackendSettings}

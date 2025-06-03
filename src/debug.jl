@@ -3,6 +3,17 @@ module Debug
 using ..Config
 
 # Debug utilities
+#
+# Print debug message if debug mode is enabled
+# Arguments:
+# - msg: Message to print
+# Behavior:
+# - Only prints when Config.CONFIG.debug is true
+# - Prefixes messages with "DEBUG: "
+# Usage:
+# - Used throughout the codebase for debugging purposes
+# - Should be used sparingly in production code
+#
 function debug_print(msg::String)
     if Config.CONFIG.debug
         println("DEBUG: $msg")

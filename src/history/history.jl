@@ -6,6 +6,15 @@ using ..Types
 using ..Config
 
 # History management functions
+#
+# Add a new entry to the history store
+# Arguments:
+# - timestamp: When the code was generated
+# - original: Original user input statement
+# - generated: Generated Oscar code
+# - is_valid: Whether the generated code was valid
+# - validation_error: Error message if validation failed (optional)
+#
 function add_entry!(timestamp::String, original::String, generated::String, is_valid::Bool, validation_error::Union{Nothing,String}=nothing)
     entry = HistoryEntry(
         timestamp,
@@ -18,6 +27,13 @@ function add_entry!(timestamp::String, original::String, generated::String, is_v
     Config.CONFIG.history_store.current_index = length(Config.CONFIG.history_store.entries)
 end
 
+#
+# Delete an entry from the history store
+# Arguments:
+# - idx: Index of the entry to delete
+# Updates:
+# - Adjusts current_index if needed
+#
 function delete_entry!(idx::Int)
     deleteat!(Config.CONFIG.history_store.entries, idx)
     if Config.CONFIG.history_store.current_index ≥ idx
@@ -25,11 +41,26 @@ function delete_entry!(idx::Int)
     end
 end
 
+#
+# Clear all entries from the history store
+# Updates:
+# - Resets current_index to 0
+#
 function clear_entries!()
     empty!(Config.CONFIG.history_store.entries)
     Config.CONFIG.history_store.current_index = 0
 end
 
+#
+# Edit an existing history entry
+# Arguments:
+# - idx: Index of the entry to edit
+# - original: New original statement
+# - generated: New generated code
+# Updates:
+# - Keeps the original timestamp
+# - Resets validation status to valid
+#
 function edit_entry!(idx::Int, original::String, generated::String)
     Config.CONFIG.history_store.entries[idx] = HistoryEntry(
         Config.CONFIG.history_store.entries[idx].timestamp,
@@ -40,12 +71,27 @@ function edit_entry!(idx::Int, original::String, generated::String)
     )
 end
 
+#
+# Save the history to a JSON file
+# Arguments:
+# - filename: Path to save the history
+# Format:
+# - Saves entries as JSON array
+#
 function save_history(filename::String)
     open(filename, "w") do io
         JSON.print(io, Config.CONFIG.history_store.entries)
     end
 end
 
+#
+# Load history from a JSON file
+# Arguments:
+# - filename: Path to load history from
+# Updates:
+# - Replaces current history store
+# - Maintains current_index
+#
 function load_history(filename::String)
     entries = Vector{HistoryEntry}()
     open(filename, "r") do io

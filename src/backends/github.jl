@@ -6,9 +6,25 @@ using ..Validator
 using ..Debug
 using ..Prompts
 
+#
+# Default GitHub repository path
+# Should be in format "username/repo"
+#
 const DEFAULT_REPO = "username/repo"
+#
+# Default branch to use for GitHub operations
+# Most repositories use "main" as their default branch
+#
 const DEFAULT_BRANCH = "main"
+#
+# Base URL for GitHub API
+# Used for authentication and repository operations
+#
 const DEFAULT_API_URL = "https://api.github.com"
+#
+# Base URL for raw content access
+# Used to directly access files in repositories
+#
 const DEFAULT_RAW_URL = "https://raw.githubusercontent.com"
 
 """
