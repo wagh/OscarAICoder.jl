@@ -50,9 +50,12 @@ function process_statement_local(statement::String;
         # Prepare the request body
         body = Dict(
             "prompt" => prompt,
-            "max_tokens" => 2000,
-            "temperature" => 0.7,
-            "top_p" => 1.0,
+            "max_tokens" => 5000, # Maximum tokens to generate
+                                  # Earlier was 2000
+            "temperature" => 0.2, # Lower temperature for more focused output
+                                  # Earlier values were 0.7
+                                  # Lower values are better for code generation
+            "top_p" => 1.0, 
             "model" => model
         )
         
