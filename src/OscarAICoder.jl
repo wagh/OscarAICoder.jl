@@ -41,6 +41,12 @@ get_local_model = Config.get_local_model
 get_entries = History.get_entries
 delete_entry! = History.delete_entry!
 display_history = History.display_history
+edit_entry! = History.edit_entry!
+clear_entries! = History.clear_entries!
+save_history = History.save_history
+load_history = History.load_history
+get_entry = History.get_entry
+
 
 # Re-export SEED_DICTIONARY
 SEED_DICTIONARY = SeedDictionary.SEED_DICTIONARY

@@ -194,6 +194,9 @@ function display_history(idx::Int)
 end
 
 function get_entry(idx::Int)
+    if idx < 1 || idx > length(get_entries())
+        throw(ArgumentError("Invalid index: $idx. Must be between 1 and $(length(get_entries()))"))
+    end
     return Config.CONFIG.history_store.entries[idx]
 end
 
