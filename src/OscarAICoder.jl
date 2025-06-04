@@ -46,6 +46,7 @@ clear_entries! = History.clear_entries!
 save_history = History.save_history
 load_history = History.load_history
 get_entry = History.get_entry
+add_entry! = History.add_entry!
 
 
 # Re-export SEED_DICTIONARY
