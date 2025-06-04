@@ -11,7 +11,7 @@ using Dates
 using Base.Meta
 using Oscar
 
-export process_statement, execute_statement, execute_statement_with_format, execute_all_statements
+export process_statement, execute_statement, execute_statement_with_format, execute_all_statements, format_oscar_code
 
 """
     process_statement(statement::String; kwargs...)
@@ -303,5 +303,93 @@ function execute_statement_with_format(oscar_code::String; output_format=:string
         error("Error executing Oscar code: $e\nCode: $oscar_code")
     end
 end
+
+"""
+    format_oscar_code(code::String)
+
+Format Oscar code to be more readable.
+To be used after code generation. 
+For example:
+```
+format_oscar_code("\"\"\"\nfunction f(x)\n    return x + 1\nend\n\"\"\"");
+format_oscar_code(process_statement( stmt ));
+```
+"""
+
+function format_oscar_code(code::String)::Vector{String}
+    debug_print("--- format_oscar_code called ---")
+    debug_print("Input code (raw): '$(repr(code))'")
+
+    # Step 1: Unescape string literals.
+    # This converts sequences like "\n", "\"", etc., from a raw string
+    # (often returned by LLMs) into their actual character representations.
+    # For example, a string "f(x) = x\nreturn x" becomes "f(x) = x\nreturn x".
+    interpreted_code = Base.unescape_string(code)
+    debug_print("Interpreted code: '$(repr(interpreted_code))'")
+
+    # Step 2: Split the code into individual lines.
+    source_lines = split(interpreted_code, '\n')
+    debug_print("Source lines ($(length(source_lines)) lines): $source_lines")
+
+    # Step 3: Initialize variables for formatting logic.
+    formatted_lines = String[]  # Array to hold the processed, indented lines.
+    current_indent_level = 0    # Tracks the current indentation level.
+    indent_step = 4             # Number of spaces per indentation level.
+    debug_print("Initial indent_level: $current_indent_level, indent_step: $indent_step")
+
+    # Regex to identify keywords that typically increase indentation.
+    keywords_increase_indent = r"^\s*(function|for|while|if|begin|let|struct|mutable struct|try|module|do)\b"
+    # Regex to identify keywords that typically decrease indentation (before the line is added).
+    keywords_decrease_indent = r"^\s*(end|else|elseif|catch|finally)\b"
+    # Regex to identify keywords that decrease indentation *after* the line is added (e.g. `else` in an `if-else` block that itself is not indented).
+    # This is a simpler heuristic; more complex cases might need full parsing.
+
+    debug_print("Starting line processing loop...")
+    # Process each line to apply indentation.
+    for (i, line) in enumerate(source_lines)
+        debug_print("  [Line $i Original]: '$(repr(line))'")
+        # Remove leading/trailing whitespace for consistent keyword matching and clean output.
+        stripped_line = strip(line)
+        debug_print("  [Line $i Stripped]: '$(repr(stripped_line))'")
+
+        # If the line is empty after stripping, preserve it as an empty line (or skip if desired).
+        # Here, we'll add it as an empty line to preserve spacing, but without extra indentation.
+        if isempty(stripped_line)
+            push!(formatted_lines, "")
+            debug_print("  [Line $i Action]: Added empty line.")
+            continue
+        end
+
+        # Adjust indentation level *before* adding the current line.
+        # If the line starts with a keyword that closes a block (e.g., `end`, `else`),
+        # decrease the indent level first.
+        if occursin(keywords_decrease_indent, stripped_line)
+            old_indent = current_indent_level
+            current_indent_level = max(current_indent_level - 1, 0) # Prevent negative indentation.
+            debug_print("  [Line $i Indent]: Decreased indent from $old_indent to $current_indent_level (due to: $stripped_line)")
+        end
+
+        # Construct the indented line.
+        indentation = " " ^ (current_indent_level * indent_step)
+        final_line = indentation * stripped_line
+        push!(formatted_lines, final_line)
+        debug_print("  [Line $i Action]: Added indented line: '$(repr(final_line))' (indent: $current_indent_level)")
+
+        # Adjust indentation level *after* adding the current line.
+        # If the line starts with a keyword that opens a new block (e.g., `function`, `if`),
+        # increase the indent level for subsequent lines.
+        if occursin(keywords_increase_indent, stripped_line)
+            old_indent = current_indent_level
+            current_indent_level += 1
+            debug_print("  [Line $i Indent]: Increased indent from $old_indent to $current_indent_level (due to: $stripped_line)")
+        end
+    end
+    debug_print("Line processing loop finished.")
+
+    # Step 4: Return the array of formatted lines.
+    debug_print("Returning array of formatted lines: $formatted_lines")
+    return formatted_lines
+end
+
 
 end # module Core

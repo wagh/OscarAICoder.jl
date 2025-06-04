@@ -21,9 +21,11 @@ include("core/process.jl")
 export process_statement, execute_statement, execute_statement_with_format
 export SeedDictionary, CONFIG, get_config, set_config, get_backend_settings, set_backend_settings, get_training_mode, set_training_mode, get_dictionary_mode, set_dictionary_mode, get_debug_mode, set_debug_mode, SEED_DICTIONARY, set_local_model, get_local_model
 export add_entry!, delete_entry!, clear_entries!, edit_entry!, save_history, load_history, get_entries, get_entry, display_history, current_timestamp, HistoryStore, HistoryEntry
+export format_oscar_code
 
 # Re-export functions from Core and Config
 process_statement = Core.process_statement
+format_oscar_code = Core.format_oscar_code
 get_config = Config.get_config
 set_config = Config.set_config
 get_backend_settings = Config.get_backend_settings
