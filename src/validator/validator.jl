@@ -76,6 +76,7 @@ function collect_declarations(expr, vars::Set{Symbol})
             for subexpr in expr.args
                 collect_declarations(subexpr, vars)
             end
+        end
     end
 end
 
