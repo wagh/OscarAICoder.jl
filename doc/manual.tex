@@ -120,10 +120,10 @@
 
 \begin{abstract}
   This document provides comprehensive documentation for the
-  \modname{OscarAICoder.jl} package, a powerful tool for generating Oscar code
-  from natural language mathematical statements. The package supports multiple
-  backends, context management, and various configuration options to customize
-  the code generation process.
+  \modname{OscarAICoder.jl} package, a powerful tool for generating Oscar
+  \cite{oscar_project} code from natural language mathematical statements. The
+  package supports multiple backends, context management, and various
+  configuration options to customize the code generation process.
 \end{abstract}
 
 \section{Introduction}
@@ -302,7 +302,7 @@ process_statement("Find the roots")
 The \modname{History} module provides functionalities to manage the log of interactions, including user inputs, generated Oscar code, and validation status. All history functions are accessible via the \modname{History} module (e.g., \code{History.add\_entry!}).
 
 \subsubsection{The \code{HistoryEntry} Type}
-\indexfc{HistoryEntry}{type}
+\indexfunc{HistoryEntry}{type}
 Most functions that retrieve history entries return or operate on objects of type \code{HistoryEntry}. This type has the following fields:
 \begin{itemize}
     \item \code{timestamp::String}: The timestamp when the entry was created (e.g., \code{"2025-06-04\_18-10-11"}).
@@ -331,7 +331,7 @@ function add_entry!(
 \end{itemize}
 
 \paragraph{\func{History.get\_entries}}
-\indexfunc{History.get_entries}
+\indexfunc{History.get\_entries}
 Retrieves all history entries currently stored.
 \begin{lstlisting}[language=Julia, basicstyle=\footnotesize\ttfamily\color{black}]
 function get_entries()::Vector{HistoryEntry}
@@ -341,7 +341,7 @@ function get_entries()::Vector{HistoryEntry}
 \end{itemize}
 
 \paragraph{\func{History.get\_entry}}
-\indexfunc{History.get_entry}
+\indexfunc{History.get\_entry}
 Retrieves a specific history entry by its 1-based index.
 \begin{lstlisting}[language=Julia, basicstyle=\footnotesize\ttfamily\color{black}]
 function get_entry(idx::Int)::HistoryEntry
@@ -379,7 +379,7 @@ function edit_entry!(idx::Int, original::String, generated::String)
 \subsubsection{Displaying History}
 
 \paragraph{\func{History.display\_history}}
-\indexfunc{History.display_history}
+\indexfunc{History.display\_history}
 Prints history entries to the console in a formatted way. This function has multiple methods:
 \begin{itemize}
     \item \code{display\_history()}: Displays all entries in the current history log.
@@ -390,14 +390,14 @@ Prints history entries to the console in a formatted way. This function has mult
 \subsubsection{Saving and Loading History}
 
 \paragraph{\func{History.save\_history}}
-\indexfunc{History.save_history}
+\indexfunc{History.save\_history}
 Saves the current history log to a specified JSON file.
 \begin{lstlisting}[language=Julia, basicstyle=\footnotesize\ttfamily\color{black}]
 function save_history(filename::String)
 \end{lstlisting}
 
 \paragraph{\func{History.load\_history}}
-\indexfunc{History.load_history}
+\indexfunc{History.load\_history}
 Loads history entries from a specified JSON file, replacing any entries currently in memory.
 \begin{lstlisting}[language=Julia, basicstyle=\footnotesize\ttfamily\color{black}]
 function load_history(filename::String)
@@ -406,7 +406,7 @@ function load_history(filename::String)
 \subsubsection{Utility Functions}
 
 \paragraph{\func{History.current\_timestamp}}
-\indexfunc{History.current_timestamp}
+\indexfunc{History.current\_timestamp}
 Returns a string representation of the current date and time, formatted for use as a timestamp in history entries (e.g., \code{"yyyy-mm-dd\_HH-MM-SS"}).
 \begin{lstlisting}[language=Julia, basicstyle=\footnotesize\ttfamily\color{black}]
 function current_timestamp()::String
@@ -923,7 +923,7 @@ We would like to express our gratitude to the following individuals and organiza
 OscarAICoder.jl is licensed under the MIT License.
 
 \clearpage
-\section*{Index}\addcontentsline{toc}{section}{Index}
+%\section*{Index}\addcontentsline{toc}{section}{Index}
 \printindex
 \end{document}
 
