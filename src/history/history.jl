@@ -78,10 +78,107 @@ end
 # Format:
 # - Saves entries as JSON array
 #
-function save_history(filename::String)
-    open(filename, "w") do io
-        JSON.print(io, Config.CONFIG.history_store.entries)
+function get_session_history_filename()
+    """
+    Generate a full path for the current session's history file
+    Location: ~/.OscarAICoder_sessions/oscar_history_YYYYMMDD_HHMMSS.json
+    """
+    # Create sessions directory if it doesn't exist
+    sessions_dir = joinpath(homedir(), "OscarAICoder_sessions")
+    if !isdir(sessions_dir)
+        mkpath(sessions_dir)
     end
+
+    # Generate timestamp-based filename
+    timestamp = Dates.format(Dates.now(), "YYYYMMDD_HHMMSS")
+    filename = "oscar_history_$(timestamp).json"
+    
+    # Return full path
+    return joinpath(sessions_dir, filename)
+end
+
+function save_history(filename::String=get_session_history_filename())
+    """
+    Save the history to a JSON file
+    Arguments:
+    - filename: Path to save the history (optional, defaults to session-specific filename)
+    Format:
+    - Saves entries as JSON array
+    """
+    if isempty(filename)
+        filename = get_session_history_filename()
+    end
+    if (length(Config.CONFIG.history_store.entries) == 0)
+        println("No history to save")
+        return
+    end
+    try
+        open(filename, "w") do io
+            JSON.print(io, Config.CONFIG.history_store.entries)
+        end
+    catch e
+        println("Error saving history: $e")
+        return
+    end
+    println("History saved to $filename")
+end
+
+function load_history(filename::String)
+    """
+    Load history from a JSON file
+    Arguments:
+    - filename: Path to load history from
+    Updates:
+    - Replaces current history store
+    - Maintains current_index
+    """
+    entries = Vector{HistoryEntry}()
+    try
+        open(filename, "r") do io
+            # Parse JSON and convert to HistoryEntry
+            for entry in JSON.parse(io)
+                push!(entries, HistoryEntry(
+                    entry["timestamp"],
+                    entry["original"],
+                    entry["generated"],
+                    entry["valid"],
+                    entry["validation_error"]
+                ))
+            end
+        end
+    catch e
+        println("Error loading history: $e")
+        return
+    end
+    
+    Config.CONFIG.history_store.entries = entries
+    println("History loaded from $filename")
+end
+
+function save_history(filename::String=get_session_history_filename())
+    """
+    Save the history to a JSON file
+    Arguments:
+    - filename: Path to save the history (optional, defaults to session-specific filename)
+    Format:
+    - Saves entries as JSON array
+    """
+    if isempty(filename)
+        filename = get_session_history_filename()
+    end
+    if (length(Config.CONFIG.history_store.entries) == 0)
+        println("No history to save")
+        return
+    end
+    try
+        open(filename, "w") do io
+            JSON.print(io, Config.CONFIG.history_store.entries)
+        end
+    catch e
+        println("Error saving history: $e")
+        return
+    end
+    println("History saved to $filename")
 end
 
 #
