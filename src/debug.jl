@@ -20,6 +20,21 @@ function debug_print(msg::String)
     end
 end
 
+function debug_print(msg::Vector{Base.StackTraces.StackFrame})
+    if Config.CONFIG.debug
+        println("DEBUG: Stacktrace:")
+        for frame in msg
+            println("DEBUG:   $(frame.file):$(frame.line) - $(frame.func)")
+        end
+    end
+end
+
+function debug_print(msg::Any)
+    if Config.CONFIG.debug
+        println("DEBUG: $msg")
+    end
+end
+
 # Export debug utilities
 export debug_print
 
