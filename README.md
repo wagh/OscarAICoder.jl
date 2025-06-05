@@ -4,15 +4,146 @@ A Julia package that translates English mathematical statements into Oscar code 
 
 ## Quick Start
 
-1. Install the package:
-```julia
-import Pkg
-Pkg.add(path="/path/to/OscarAICoder")
+There are two ways to install OscarAICoder.jl:
+
+### 1. Project Environment Installation (Recommended)
+
+1. Clone the repository:
+```bash
+git clone https://github.com/wagh/OscarAICoder.jl.git
 ```
 
-2. Basic usage:
+2. Navigate to the project directory:
+```bash
+cd OscarAICoder.jl
+```
+
+3. Install the package and its dependencies (only needed once):
+```julia
+import Pkg
+Pkg.develop(path=".")  # Register the package in the project environment
+Pkg.instantiate()  # Install all dependencies (only needed once)
+```
+
+4. In any new Julia session:
+```julia
+import Pkg
+Pkg.activate(".")  # Activate the project environment
+using OscarAICoder
+```
+
+### 2. Global Installation (Not Recommended)
+
+If you want to use `using OscarAICoder` directly without activating any environment:
+
+1. Clone the repository:
+```bash
+git clone https://github.com/wagh/OscarAICoder.jl.git
+```
+
+2. Navigate to the project directory:
+```bash
+cd OscarAICoder.jl
+```
+
+3. Install globally (only run once):
+```julia
+import Pkg
+Pkg.add(path=".")
+Pkg.instantiate()
+```
+
+4. In any new Julia session:
 ```julia
 using OscarAICoder
+```
+
+### Why Project Environment Installation is Recommended
+Project environment installation is the recommended approach because:
+- It prevents dependency conflicts with other packages
+- It ensures consistent behavior across different projects
+- It makes it easier to manage different versions of the package
+- It follows Julia's best practices for package development
+- It's easier for others to use your package with the exact same dependencies
+
+### Why Global Installation is Not Recommended
+Global installation is not recommended because:
+- It can cause dependency conflicts with other packages
+- It makes it harder to manage different versions of the package
+- It can interfere with package development
+- It can make it harder to ensure consistent behavior across different systems
+- It can make maintenance more difficult
+
+### Troubleshooting Installation Issues
+If you encounter any installation issues, try these steps:
+1. Ensure you have the correct permissions to access the package directory
+2. Check that all required dependencies are installed
+3. Run `Pkg.status()` to verify the package installation
+4. If needed, run `Pkg.build("OscarAICoder")` to build the package
+5. Try `Pkg.precompile()` to force precompilation
+
+If you still encounter errors, please check that:
+- All source files are present in the `src` directory
+- The main package file `src/OscarAICoder.jl` exists and is properly structured
+- All required dependencies are installed correctly
+
+### Note about Pkg.develop()
+The `Pkg.develop()` command is not needed when you're working directly in the package's directory. It's only used when you want to develop a package from a different location. Since we're already in the package's directory, we can skip this step.
+
+4. After installation, in any new Julia session, you need to:
+```julia
+import Pkg
+Pkg.activate(".")  # Activate the project environment
+using OscarAICoder
+```
+
+### Why do I need to activate the project environment every time?
+This is because the package is not registered in the Julia General registry. When you start a new Julia session, it doesn't know about your local package unless you activate its environment.
+
+If you want to use `using OscarAICoder` directly without activating the project environment, you have two options:
+
+1. **Recommended Approach** (current approach):
+   - Continue using `Pkg.activate(".")` before using the package
+   - This ensures consistent dependencies and prevents conflicts with other packages
+   - Best practice for package development and maintenance
+
+2. **Alternative Approach** (not recommended):
+   ```julia
+   import Pkg
+   Pkg.develop(path="/path/to/OscarAICoder")  # Only run once
+   ```
+   After this, you can use `using OscarAICoder` directly in any Julia session.
+   However, this approach is not recommended because:
+   - It can cause dependency conflicts with other packages
+   - It makes the package harder to maintain
+   - It doesn't ensure consistent behavior across different systems
+   - It's harder for others to use your package with the exact same dependencies
+
+### Troubleshooting Precompilation Errors
+If you encounter precompilation errors, try these steps:
+1. Ensure you're in the project directory
+2. Run `Pkg.develop(path=".")` to properly link the package sources
+3. If needed, run `Pkg.build("OscarAICoder")` to build the package
+4. Finally, try `Pkg.precompile()` to force precompilation
+
+If you still encounter errors, please check that:
+- All source files are present in the `src` directory
+- The main package file `src/OscarAICoder.jl` exists and is properly structured
+- All required dependencies are installed
+
+### Why do I need to use Pkg.activate(".")?
+Since this package is not registered in the Julia General registry, we need to use a project environment to manage its dependencies. This ensures consistent behavior across different systems. The project environment approach is actually a good practice because it:
+- Ensures reproducible builds
+- Manages specific package versions
+- Prevents dependency conflicts with other packages
+- Makes it easy for others to use the package with the exact same dependencies
+
+If you prefer not to use the project environment, you can install the package globally by:
+```julia
+import Pkg
+Pkg.develop(path=".")
+```
+But this approach is not recommended as it can lead to dependency conflicts with other packages.
 
 # Process a mathematical statement
 oscar_code = process_statement("Find the roots of x^2 - 4x + 4")

@@ -131,6 +131,100 @@
 
 \modname{OscarAICoder.jl} is a Julia package that provides an interface to interact with large language models (LLMs) for generating Oscar code from natural language mathematical statements. The package is designed to be flexible, supporting multiple backends and configuration options to suit various use cases.
 
+\section{Installation}
+\label{sec:installation}
+
+\subsection{Basic Requirements}
+- Julia 1.6 or later
+- Oscar.jl package
+- HTTP.jl and JSON.jl packages
+
+\subsection{Installation Methods}
+
+\subsubsection{1. Project Environment Installation (Recommended)}
+
+\paragraph{Steps:}
+1. Clone the repository:
+\begin{lstlisting}[language=bash]
+git clone https://github.com/wagh/OscarAICoder.jl.git
+\end{lstlisting}
+
+2. Navigate to the project directory:
+\begin{lstlisting}[language=bash]
+cd OscarAICoder.jl
+\end{lstlisting}
+
+3. Install the package and its dependencies (only needed once):
+\begin{lstlisting}[language=Julia]
+import Pkg
+Pkg.activate(".")  # Activate the project environment
+Pkg.instantiate()  # Install all dependencies (only needed once)
+\end{lstlisting}
+
+4. In any new Julia session:
+\begin{lstlisting}[language=Julia]
+import Pkg
+Pkg.activate(".")  # Activate the project environment
+using OscarAICoder
+\end{lstlisting}
+
+\paragraph{Why it's recommended:}
+Project environment installation is the recommended approach because:
+\begin{itemize}
+    \item Prevents dependency conflicts with other packages
+    \item Ensures consistent behavior across different projects
+    \item Makes it easier to manage different versions of the package
+    \item Follows Julia's best practices for package development
+    \item Makes it easier for others to use your package with the exact same dependencies
+\end{itemize}
+
+\subsubsection{2. Global Installation (Not Recommended)}
+
+\paragraph{Steps:}
+If you want to use \code{using OscarAICoder} directly without activating any environment:
+
+1. Clone the repository:
+\begin{lstlisting}[language=bash]
+git clone https://github.com/wagh/OscarAICoder.jl.git
+\end{lstlisting}
+
+2. Install globally (only run once):
+\begin{lstlisting}[language=Julia]
+import Pkg
+Pkg.develop(path="/path/to/OscarAICoder")
+\end{lstlisting}
+
+3. In any new Julia session:
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+\end{lstlisting}
+
+\paragraph{Why it's not recommended:}
+Global installation is not recommended because:
+\begin{itemize}
+    \item Can cause dependency conflicts with other packages
+    \item Makes it harder to manage different versions of the package
+    \item Can interfere with package development
+    \item Makes it harder to ensure consistent behavior across different systems
+    \item Makes maintenance more difficult
+\end{itemize}
+
+\subsection{Setting Up LLM Backends}
+
+\subsubsection{Local LLM Server (Recommended)}
+1. Install Ollama:
+\begin{lstlisting}[language=bash]
+wget https://raw.githubusercontent.com/wagh/OscarAICoder.jl/main/setup_ollama.sh
+chmod +x setup_ollama.sh
+./setup_ollama.sh
+\end{lstlisting}
+
+2. After installation:
+\begin{lstlisting}[language=Julia]
+using OscarAICoder
+oscar_code = process_statement("Factor the polynomial x^2 - 5x + 6 over the integers.")
+\end{lstlisting}
+
 \section{Basic Usage}
 \label{sec:basic_usage}
 
