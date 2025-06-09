@@ -1,5 +1,7 @@
 module Config
 
+__precompile__(false)
+
 # Configuration types
 #
 # Enum representing different backend types for code generation
@@ -90,14 +92,100 @@ function initialize_backend_settings()
             "qwen2.5-coder",
             [:qwen2_5, :qwen2_5_coder, :oscar_coder]
         )
-    ),
-    true,  # training_mode
-    :disabled,  # dictionary_mode
-    ContextState([], true),  # context
-    false,  # debug
-    HistoryStore(Vector{HistoryEntry}(), 0),  # history_store
-    dirname(@__DIR__)  # base_dir
-)
+    )
+end
+
+# Initialize default configuration
+function initialize_config()
+    """
+    Initialize the default configuration with:
+    - Default backend: LOCAL
+    - Empty backend settings
+    - Training mode: false
+    - Dictionary mode: :full
+    - Debug mode: false
+    - Sessions directory: ~/.OscarAICoder_sessions
+    """
+    sessions_dir = joinpath(homedir(), ".OscarAICoder_sessions")
+    if !isdir(sessions_dir)
+        mkpath(sessions_dir)
+    end
+    
+    backend_settings = initialize_backend_settings()
+    
+    # Check if Ollama service is running
+    try
+        # First try to check if Ollama is running as a service
+        service_status = read(`systemctl status ollama`, String)
+        if occursin("active (running)", service_status)
+            # If Ollama service is running, use LOCAL backend with full mode
+            @info "Ollama service is running. Using LOCAL backend with full mode."
+            return ConfigType(
+                LOCAL,
+                backend_settings,
+                false,
+                :full,
+                ContextState([], true),
+                false,
+                HistoryStore(Vector{HistoryEntry}(), 0),
+                sessions_dir
+            )
+        end
+        
+        # If not running as a service, check if Ollama process is running
+        # Use a more portable method that works across different systems
+        try
+            # Try to connect to Ollama's default port (11434)
+            sock = connect("localhost", 11434)
+            close(sock)
+            # If we can connect, Ollama is running
+            @info "Ollama service is running. Using LOCAL backend with full mode."
+            return ConfigType(
+                LOCAL,
+                backend_settings,
+                false,
+                :full,
+                ContextState([], true),
+                false,
+                HistoryStore(Vector{HistoryEntry}(), 0),
+                sessions_dir
+            )
+        catch e
+            # If we can't connect, Ollama is not running
+            @warn "Ollama service not running. Switching to DICTIONARY mode."
+            return ConfigType(
+                LOCAL,
+                backend_settings,
+                false,
+                :dictionary,
+                ContextState([], true),
+                false,
+                HistoryStore(Vector{HistoryEntry}(), 0),
+                sessions_dir
+            )
+        end
+    catch e
+        # If any system command fails, default to DICTIONARY mode
+        @warn "Failed to check Ollama status. Switching to DICTIONARY mode."
+        return ConfigType(
+            LOCAL,
+            backend_settings,
+            false,
+            :dictionary,
+            ContextState([], true),
+            false,
+            HistoryStore(Vector{HistoryEntry}(), 0),
+            sessions_dir
+        )
+    end
+end
+
+# Global configuration object
+const CONFIG = initialize_config()
+
+export CONFIG, BackendType, LOCAL, REMOTE, HUGGINGFACE, GITHUB, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore, set_local_model, get_local_model, get_sessions_directory
+
+
 
 # Configuration functions
 function get_config()
