@@ -14,7 +14,7 @@ using OscarAICoder.Types
 using OscarAICoder.Constants
 
 export BackendType, LOCAL, REMOTE, HUGGINGFACE, GITHUB
-export CONFIG, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore, set_local_model, get_local_model
+export CONFIG, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore, set_local_model, get_local_model, get_sessions_directory
 
 # Define types first
 #
@@ -51,7 +51,7 @@ end
 # - context: Maintains session context
 # - debug: Debug mode flag
 # - history_store: Stores history of generated code
-# - base_dir: Base directory for the system
+# - sessions_directory: Directory for session history files
 #
 mutable struct ConfigType
     default_backend::BackendType
@@ -61,15 +61,15 @@ mutable struct ConfigType
     context::ContextState
     debug::Bool
     history_store::HistoryStore
-    base_dir::String
+    sessions_directory::String
 end
 
-# Global configuration
-const CONFIG = ConfigType(
-    LOCAL,  # default_backend
-    Dict{
-        BackendType, BackendSettings
-    }(
+# Initialize backend settings
+function initialize_backend_settings()
+    """
+    Initialize backend settings with default values
+    """
+    return Dict{BackendType, BackendSettings}(
         LOCAL => BackendSettings(
             "http://localhost:11434/api/generate",
             "qwen2.5-coder",
@@ -103,6 +103,11 @@ const CONFIG = ConfigType(
 function get_config()
     """Get the current configuration."""
     return CONFIG
+end
+
+function get_sessions_directory()
+    """Get the current sessions directory."""
+    return CONFIG.sessions_directory
 end
 
 function set_config(new_config::ConfigType)
@@ -173,6 +178,16 @@ end
 function set_dictionary_mode(mode::Symbol)
     """Set the dictionary mode."""
     CONFIG.dictionary_mode = mode
+end
+
+function configure_dictionary_mode(mode::Symbol)
+    """Configure the dictionary mode."""
+    CONFIG.dictionary_mode = mode
+end
+
+function configure_offline_mode(mode::Bool)
+    """Configure offline mode."""
+    CONFIG.offline_mode = mode
 end
 
 function get_debug_mode()

@@ -79,6 +79,47 @@ function save_seed_dictionary(filename::String, entries::Vector{Dict})
     end
 end
 
+"""
+    add_to_dictionary(input::String, output::String)
+
+Add a new entry to the seed dictionary
+"""
+function add_to_dictionary(input::String, output::String)
+    push!(SEED_DICTIONARY, Dict(
+        "input" => input,
+        "output" => output
+    ))
+end
+
+"""
+    has_in_dictionary(statement::String)
+
+Check if a statement exists in the dictionary
+"""
+function has_in_dictionary(statement::String)
+    for entry in SEED_DICTIONARY
+        if entry["input"] == statement
+            return true
+        end
+    end
+    return false
+end
+
+"""
+    get_from_dictionary(statement::String)
+
+Get the output for a given input statement from the dictionary
+"""
+function get_from_dictionary(statement::String)
+    for entry in SEED_DICTIONARY
+        if entry["input"] == statement
+            return entry["output"]
+        end
+    end
+    return nothing
+end
+
+
 # Export SEED_DICTIONARY
 export SEED_DICTIONARY
 
@@ -128,5 +169,6 @@ const SEED_DICTIONARY = [
 
 # Export functions
 export validate_dictionary_entry, load_seed_dictionary, save_seed_dictionary, DEFAULT_DICTIONARY
+export add_to_dictionary, has_in_dictionary, get_from_dictionary
 
 end # module SeedDictionary

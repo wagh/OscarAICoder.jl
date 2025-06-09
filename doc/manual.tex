@@ -212,7 +212,7 @@ Global installation is not recommended because:
 \subsection{Setting Up LLM Backends}
 
 \subsubsection{Local LLM Server (Recommended)}
-1. Install Ollama:
+1. Install and run Ollama: 
 \begin{lstlisting}[language=bash]
 wget https://raw.githubusercontent.com/wagh/OscarAICoder.jl/main/setup_ollama.sh
 chmod +x setup_ollama.sh
@@ -483,9 +483,15 @@ Prints history entries to the console in a formatted way. This function has mult
 
 \subsubsection{Saving and Loading History}
 
+These functions are useful, for example, if you want to save your history to a file and load it later. 
+You can also make changes to the code manually. This is particularly useful when 
+the obtained code has a minor error, and you want to fix it manually.
+
 \paragraph{\func{History.save\_history}}
 \indexfunc{History.save\_history}
-Saves the current history log to a specified JSON file.
+Saves the current history log to a specified JSON file. 
+If no filename is provided, it uses a timestamp-based filename. 
+The default directory is \code{\$HOME/OscarAICoder\_sessions}.
 \begin{lstlisting}[language=Julia, basicstyle=\footnotesize\ttfamily\color{black}]
 function save_history(filename::String)
 \end{lstlisting}
@@ -576,8 +582,6 @@ For detailed documentation, including:
     \item Context management problems
     \item Configuration errors
 \end{itemize}
-
-\printindex
 
 \section{Advanced Features}
 \label{sec:advanced-features}
