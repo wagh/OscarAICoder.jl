@@ -13,10 +13,9 @@ __precompile__(false)
 @enum BackendType LOCAL REMOTE HUGGINGFACE GITHUB
 
 using OscarAICoder.Types
-using OscarAICoder.Constants
 
 export BackendType, LOCAL, REMOTE, HUGGINGFACE, GITHUB
-export CONFIG, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore, set_local_model, get_local_model, get_sessions_directory
+export CONFIG, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore, set_local_model, get_local_model, get_sessions_directory, get_config, set_config, get_backend_settings, set_backend_settings, get_training_mode, set_training_mode, get_dictionary_mode, set_dictionary_mode, get_debug_mode, set_debug_mode
 
 # Define types first
 #
