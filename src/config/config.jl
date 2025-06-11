@@ -102,7 +102,7 @@ function initialize_config()
     - Default backend: LOCAL
     - Empty backend settings
     - Training mode: false
-    - Dictionary mode: :full
+    - Dictionary mode: :enabled
     - Debug mode: false
     - Sessions directory: ~/.OscarAICoder_sessions
     """
@@ -118,13 +118,13 @@ function initialize_config()
         # First try to check if Ollama is running as a service
         service_status = read(`systemctl status ollama`, String)
         if occursin("active (running)", service_status)
-            # If Ollama service is running, use LOCAL backend with full mode
-            @info "Ollama service is running. Using LOCAL backend with full mode."
+            # If Ollama service is running, use LOCAL backend with enabled mode
+            @info "Ollama service is running. Using LOCAL backend with enabled mode."
             return ConfigType(
                 LOCAL,
                 backend_settings,
                 false,
-                :full,
+                :enabled,
                 ContextState([], true),
                 false,
                 HistoryStore(Vector{HistoryEntry}(), 0),
@@ -264,7 +264,11 @@ function get_dictionary_mode()
 end
 
 function set_dictionary_mode(mode::Symbol)
-    """Set the dictionary mode."""
+    """Set the dictionary mode. Valid modes are :enabled, :only, or :disabled."""
+    valid_modes = [:enabled, :only, :disabled]
+    if !(mode in valid_modes)
+        throw(ArgumentError("Invalid dictionary mode. Valid modes are: $(join(valid_modes, ", "))"))
+    end
     CONFIG.dictionary_mode = mode
 end
 

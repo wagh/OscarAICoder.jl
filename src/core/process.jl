@@ -79,8 +79,9 @@ function process_statement(statement::String;
         debug_print("History not used for this statement")
     end
     
-    # Try to find a match in seed dictionary first
-    if Config.CONFIG.dictionary_mode == :enabled
+    # Handle dictionary lookup based on mode
+    if Config.CONFIG.dictionary_mode == :enabled || Config.CONFIG.dictionary_mode == :only
+        found_match = false
         for entry in SeedDictionary.SEED_DICTIONARY
             if entry["input"] == statement
                 debug_print("Found exact match in seed dictionary")
@@ -95,10 +96,21 @@ function process_statement(statement::String;
                     History.add_entry!(timestamp, statement, code, true)
                     return code
                 else
-                    debug_print("Invalid Oscar code in dictionary, falling back to API")
+                    debug_print("Invalid Oscar code in dictionary")
                 end
+                found_match = true
+                break
             end
         end
+        
+        if Config.CONFIG.dictionary_mode == :only && !found_match
+            error("No dictionary entry found for statement: $statement")
+        end
+    end
+    
+    # Only proceed to API if not in :only mode
+    if Config.CONFIG.dictionary_mode == :only
+        error("Dictionary mode is :only and no match was found")
     end
     
     debug_print("No dictionary match found, using API")
