@@ -189,8 +189,27 @@ export CONFIG, BackendType, LOCAL, REMOTE, HUGGINGFACE, GITHUB, BackendSettings,
 
 # Configuration functions
 function get_config()
-    """Get the current configuration."""
-    return CONFIG
+    """Get the current configuration settings as a formatted string."""
+    settings = [
+        "Backend Settings:",
+        "  Default backend: $(CONFIG.default_backend)",
+        "  Backend URL: $(CONFIG.backend_settings[CONFIG.default_backend].url)",
+        "  Model: $(CONFIG.backend_settings[CONFIG.default_backend].model)",
+        "",
+        "Modes:",
+        "  Training mode: $(CONFIG.training_mode)",
+        "  Dictionary mode: $(CONFIG.dictionary_mode)",
+        "  Debug mode: $(CONFIG.debug)",
+        "",
+        "Context:",
+        "  First statement: $(CONFIG.context.is_first_statement)",
+        "  History count: $(length(CONFIG.context.history))",
+        "",
+        "Sessions:",
+        "  Sessions directory: $(CONFIG.sessions_directory)",
+        "  History entries: $(length(Config.CONFIG.history_store.entries))"
+    ]
+    return join(settings, "\n")
 end
 
 function get_sessions_directory()
