@@ -142,19 +142,19 @@ const SEED_DICTIONARY = [
     ),
     Dict(
         "input" => "Define a polynomial f with coefficients in QQ.",
-        "output" => "f = QQ[x]([1, 2, 3])"
+        "output" => "R, x = polynomial_ring(QQ, \"x\");\nf = R([1, 2, 3])"
     ),
     Dict(
         "input" => "Factor the polynomial x^2 - 5x + 6 over the integers.",
-        "output" => "factor(x^2 - 5*x + 6)"
+        "output" => "R, x = polynomial_ring(QQ, \"x\");\nfactor(x^2 - 5*x + 6)"
     ),
     Dict(
         "input" => "Find the roots of the polynomial x^2 - 5x + 6.",
-        "output" => "roots(x^2 - 5*x + 6)"
+        "output" => "R, x = polynomial_ring(QQ, \"x\");\nroots(x^2 - 5*x + 6)"
     ),
     Dict(
         "input" => "Compute the gcd of two polynomials f and g.",
-        "output" => "gcd(f, g)"
+        "output" => "R, x = polynomial_ring(QQ, \"x\");\ngcd(f, g)"
     ),
     Dict(
         "input" => "Define a finite field with 7 elements.",
@@ -162,7 +162,7 @@ const SEED_DICTIONARY = [
     ),
     Dict(
         "input" => "Define a polynomial ring over the finite field F.",
-        "output" => "R = F[x]"
+        "output" => "R, x = polynomial_ring(GF(7), \"x\")"
     )
 ]
 
