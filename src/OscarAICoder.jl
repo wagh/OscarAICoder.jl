@@ -6,7 +6,6 @@ using HTTP, JSON
 using Dates, Base
 
 # Include submodules in correct order
-include("constants/constants.jl")
 include("types/types.jl")
 include("config/config.jl")
 include("debug.jl")
