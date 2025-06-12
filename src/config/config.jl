@@ -1,7 +1,5 @@
 module Config
 
-__precompile__(false)
-
 # Configuration types
 #
 # Enum representing different backend types for code generation
@@ -16,6 +14,8 @@ using OscarAICoder.Types
 
 export BackendType, LOCAL, REMOTE, HUGGINGFACE, GITHUB
 export CONFIG, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore, set_local_model, get_local_model, get_sessions_directory, get_config, set_config, get_backend_settings, set_backend_settings, get_training_mode, set_training_mode, get_dictionary_mode, set_dictionary_mode, get_debug_mode, set_debug_mode
+export CONFIG, BackendType, LOCAL, REMOTE, HUGGINGFACE, GITHUB, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore, set_local_model, get_local_model, get_sessions_directory
+
 
 # Define types first
 #
@@ -95,7 +95,7 @@ function initialize_backend_settings()
 end
 
 # Initialize default configuration
-function initialize_config()
+function __init__()
     """
     Initialize the default configuration with:
     - Default backend: LOCAL
@@ -109,8 +109,15 @@ function initialize_config()
     if !isdir(sessions_dir)
         mkpath(sessions_dir)
     end
-    
-    backend_settings = initialize_backend_settings()
+
+    CONFIG.default_backend = LOCAL
+    CONFIG.backend_settings = initialize_backend_settings()
+    CONFIG.training_mode = false
+    CONFIG.dictionary_mode = :enabled
+    CONFIG.context = ContextState([], true)
+    CONFIG.debug = false
+    CONFIG.history_store = HistoryStore(Vector{HistoryEntry}(), 0)
+    CONFIG.sessions_directory = sessions_dir
     
     # Check if Ollama service is running
     try
@@ -119,16 +126,7 @@ function initialize_config()
         if occursin("active (running)", service_status)
             # If Ollama service is running, use LOCAL backend with enabled mode
             @info "Ollama service is running. Using LOCAL backend with enabled mode."
-            return ConfigType(
-                LOCAL,
-                backend_settings,
-                false,
-                :enabled,
-                ContextState([], true),
-                false,
-                HistoryStore(Vector{HistoryEntry}(), 0),
-                sessions_dir
-            )
+            return
         end
         
         # If not running as a service, check if Ollama process is running
@@ -139,51 +137,30 @@ function initialize_config()
             close(sock)
             # If we can connect, Ollama is running
             @info "Ollama service is running. Using LOCAL backend with full mode."
-            return ConfigType(
-                LOCAL,
-                backend_settings,
-                false,
-                configure_dictionary_mode(:enabled),
-                ContextState([], true),
-                false,
-                HistoryStore(Vector{HistoryEntry}(), 0),
-                sessions_dir
-            )
+            return
         catch e
             # If we can't connect, Ollama is not running
             @warn "Ollama service not running. Switching to DICTIONARY mode."
-            return ConfigType(
-                LOCAL,
-                backend_settings,
-                false,
-                configure_dictionary_mode(:enabled),
-                ContextState([], true),
-                false,
-                HistoryStore(Vector{HistoryEntry}(), 0),
-                sessions_dir
-            )
+            return
         end
     catch e
         # If any system command fails, default to DICTIONARY mode
         @warn "Failed to check Ollama status. Switching to DICTIONARY mode."
-        return ConfigType(
-            LOCAL,
-            backend_settings,
-            false,
-            configure_dictionary_mode(:enabled),
-            ContextState([], true),
-            false,
-            HistoryStore(Vector{HistoryEntry}(), 0),
-            sessions_dir
-        )
+        return
     end
 end
 
 # Global configuration object
-const CONFIG = initialize_config()
-
-export CONFIG, BackendType, LOCAL, REMOTE, HUGGINGFACE, GITHUB, BackendSettings, ContextState, ConfigType, configure_dictionary_mode, configure_offline_mode, HistoryStore, set_local_model, get_local_model, get_sessions_directory
-
+const CONFIG = ConfigType(
+            LOCAL,
+            initialize_backend_settings(),
+            false,
+            :enabled,
+            ContextState([], true),
+            false,
+            HistoryStore(Vector{HistoryEntry}(), 0),
+            "PLACEHOLDER"
+        )
 
 
 # Configuration functions
