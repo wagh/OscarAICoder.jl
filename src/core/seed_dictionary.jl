@@ -163,6 +163,10 @@ const SEED_DICTIONARY = [
     Dict(
         "input" => "Define a polynomial ring over the finite field F.",
         "output" => "R, x = polynomial_ring(GF(7), \"x\")"
+    ),
+    Dict(
+    	"input" => "Write a function that returns n-th Fibonacchi number",
+    	"output" => "function fibonacci(n::Int)  \n    if n <= 1  \n        return n  \n    else  \n        return fibonacci(n-1) + fibonacci(n-2)  \n    end  \nend"
     )
 ]
 

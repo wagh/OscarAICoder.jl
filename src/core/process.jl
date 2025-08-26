@@ -11,7 +11,8 @@ using Dates
 using Base.Meta
 using Oscar
 
-export process_statement, execute_statement, execute_statement_with_format, execute_all_statements
+# Export public API
+export process_statement, execute_statement, execute_statement_with_format, debug_history_state, execute_all_statements
 
 """
     process_statement(statement::String; kwargs...)
@@ -58,25 +59,74 @@ function process_statement(statement::String;
         error("Empty statement provided")
     end
     
+    # Check for Hugging Face API key if using Hugging Face backend
+    if backend == Config.HUGGINGFACE
+        # If no api_key provided, try to get from environment
+        if api_key === nothing
+            if haskey(ENV, "HUGGINGFACE_API_KEY")
+                api_key = ENV["HUGGINGFACE_API_KEY"]
+                debug_print("Using Hugging Face API key from environment variable")
+            else
+                error("""
+                Hugging Face API key not found. Please either:
+                1. Pass the API key using the api_key parameter, or
+                2. Set the HUGGINGFACE_API_KEY environment variable
+                """)
+            end
+        end
+    end
+    
     debug_print("=== Processing Statement ===")
     debug_print("Input statement: $statement")
     debug_print("Selected backend: $backend")
     debug_print("Selected model: $model")
     
+    # Force debug prints to console for this section
+    was_debug = Config.CONFIG.debug
+    Config.CONFIG.debug = true
+    
+    # Print debug info to console
+    current_history = Config.CONFIG.context.history
+
+    # println("\n=== DEBUG: process_statement ===")
+    # println("Statement: ", statement)
+    # println("clear_context: ", clear_context)
+    # println("Current history (address): ", pointer_from_objref(current_history))
+    # println("Current history content: ", current_history)
+    # println("is_first_statement: ", Config.CONFIG.context.is_first_statement)
+    
     # Handle history options
     if clear_context
-        Config.CONFIG.context.history = []
-        Config.CONFIG.context.is_first_statement = true
-        debug_print("History cleared before processing")
+        # println("\n=== CLEARING HISTORY ===")
+        # Create a new empty array
+        # Config.CONFIG.context.history = Tuple{String, String}[]
+        # Config.CONFIG.context.is_first_statement = true
+        clear_entries!()
+        # Verify the clear worked
+        # println("After clear - New history (address): ", pointer_from_objref(Config.CONFIG.context.history))
+        # println("After clear - History content: ", Config.CONFIG.context.history)
+        # println("After clear - is_first_statement: ", Config.CONFIG.context.is_first_statement)
     end
+    
+    # Restore debug state
+    Config.CONFIG.debug = was_debug
 
     # Add statement to context if not in training mode and use_history is true
     if !Config.CONFIG.training_mode && use_history
-        Config.CONFIG.context.history = push!(Config.CONFIG.context.history, (statement, ""))
+        debug_print("\n=== Adding to History ===")
+        debug_print("Before adding - History address: $(pointer_from_objref(Config.CONFIG.context.history))")
+        debug_print("Before adding - History content: $(Config.CONFIG.context.history)")
+        
+        # Use a new array to ensure we don't have reference issues
+        new_history = copy(Config.CONFIG.context.history)
+        push!(new_history, (statement, ""))
+        Config.CONFIG.context.history = new_history
+        
         Config.CONFIG.context.is_first_statement = false
-        debug_print("Statement added to history")
+        debug_print("After adding - New history address: $(pointer_from_objref(Config.CONFIG.context.history))")
+        debug_print("After adding - History content: $(Config.CONFIG.context.history)")
     else
-        debug_print("History not used for this statement")
+        debug_print("\n=== Not adding to history (training_mode: $(Config.CONFIG.training_mode), use_history: $use_history) ===")
     end
     
     # Handle dictionary lookup based on mode

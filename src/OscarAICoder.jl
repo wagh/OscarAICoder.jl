@@ -12,14 +12,31 @@ include("debug.jl")
 include("validator/validator.jl")
 include("history/history.jl")
 include("prompts/prompts.jl")
-include("backends/backends.jl")
+
+# Load SeedDictionary before backends since they depend on it
 include("core/seed_dictionary.jl")
+
+# Now load backends
+include("backends/backends.jl")
+
+# Finally load process which depends on both
 include("core/process.jl")
 
 # Export public API
 export process_statement, execute_statement, execute_statement_with_format
-export SeedDictionary, CONFIG, get_config, set_config, get_backend_settings, set_backend_settings, get_training_mode, set_training_mode, get_dictionary_mode, set_dictionary_mode, get_debug_mode, set_debug_mode, SEED_DICTIONARY, set_local_model, get_local_model
-export add_entry!, delete_entry!, clear_entries!, edit_entry!, save_history, load_history, get_entries, get_entry, display_history, current_timestamp, HistoryStore, HistoryEntry
+
+# Re-export from Config
+export BackendType, LOCAL, REMOTE, HUGGINGFACE, GITHUB, CONFIG, get_config, set_config,
+       get_backend_settings, set_backend_settings, get_training_mode, set_training_mode,
+       get_dictionary_mode, set_dictionary_mode, get_debug_mode, set_debug_mode,
+       set_local_model, get_local_model, get_sessions_directory
+
+# Re-export from History
+export add_entry!, delete_entry!, clear_entries!, edit_entry!, save_history, load_history,
+       get_entries, get_entry, display_history, current_timestamp, HistoryStore, HistoryEntry
+
+# Re-export SeedDictionary
+export SeedDictionary, SEED_DICTIONARY
 
 # Re-export functions from Core and Config
 process_statement = Core.process_statement

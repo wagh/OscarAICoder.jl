@@ -5,6 +5,7 @@ using ..Config
 using ..Validator
 using ..Debug
 using ..Prompts
+using ..SeedDictionary
 
 # Re-export Prompts module
 export Prompts
@@ -16,5 +17,7 @@ include("github.jl")
 
 # Export backend functions
 export process_statement_local, process_statement_huggingface, process_statement_github
+
+export SEED_DICTIONARY
 
 end # module Backends

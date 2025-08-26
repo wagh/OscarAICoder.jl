@@ -5,6 +5,7 @@ using ..Config
 using ..Validator
 using ..Debug
 using ..Prompts
+using ..SeedDictionary
 
 #
 # Default URL for the local LLM server
@@ -39,7 +40,7 @@ function process_statement_local(statement::String;
     # Check if dictionary mode is enabled
     if Config.CONFIG.dictionary_mode == :enabled
         # Try to find a match in SEED_DICTIONARY
-        for entry in Config.SEED_DICTIONARY
+        for entry in SEED_DICTIONARY
             if entry["input"] == statement
                 debug_print("Found exact match in seed dictionary")
                 return entry["output"]
